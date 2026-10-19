@@ -339,6 +339,21 @@ probability of improvement, performance profiles, with the training seed within 
         comb = hl["comparisons"]["D_vs_B"]["per_condition"]["combined_shift"]["iqm_diff"]
         res += (f"<p>Under the combined shift, the D−B difference is {_ci(comb, 'diff')} (exploratory). "
                 f"Training cost for arm D includes planner calls; every arm used the same transition budget.</p>")
+        dg = _load(os.path.join(tdir, "headline", "diagnosis.json"))
+        if dg and hl["decision"]["outcome"] in ("D_loses_to_B", "D_ties_B", "D_ties_C", "mixed"):
+            d_, c_ = dg["arms"]["D"], dg["arms"]["C"]
+            nc = dg["noise_ceiling_spearman_sampled_rollouts"]
+            res += (f"<p><b>Diagnosis of why regret did not help</b> (exploratory; descriptive numbers from the headline runs and fresh rollouts, not part of the pre-declared comparisons). "
+                    f"(1) In this training distribution the planner certified {dg['training_distribution_certified_fraction'] * 100:.0f}% of sampled scenarios, so planner survival is the 500-step cap everywhere and "
+                    f"regret reduces to the policy's shortfall; there were no unsolvable scenarios for the planner to steer the curriculum away from, which is the one thing a planner adds over a value-loss score. "
+                    f"(2) At equal budget, {d_['replay_fraction'] * 100:.0f}% of arm D's episodes ({d_['replays']:.0f} replays vs {d_['fresh']:.0f} fresh scenarios on average) and {c_['replay_fraction'] * 100:.0f}% of arm C's replayed stored scenarios, "
+                    f"so each replay arm trained on roughly half as many distinct scenarios as arm B. "
+                    f"(3) What counts as hard is not a property the scenario parameters reveal: a gradient-boosted model of survival on the six scenario parameters has cross-validated R² of {dg['cv_r2_survival_from_parameters']:.2f}, "
+                    f"and the top-priority quartile of the buffer is within 3% of the buffer mean on every parameter (companion panel). Hardness lives in layout geometry and timing. "
+                    f"(4) The score is noisy: the rank correlation of one scenario's survival across two independent sampled rollouts is {np.mean(nc):.2f} (range {min(nc):.2f} to {max(nc):.2f}), so roughly a third or more of the ranking is action-sampling noise. "
+                    f"Arm D's training-time episode survival ({d_['train_time_episode_survival']:.0f}) is below arm B's ({dg['arms']['B']['train_time_episode_survival']:.0f}), consistent with replay concentrating on scenarios the policy fails. "
+                    "A reading consistent with these numbers is that prioritising shortfall in a fully solvable, high-variance distribution spends half the budget re-visiting a few idiosyncratic hard layouts at the cost of diversity; "
+                    "this was not tested with a controlled intervention (for example a lower replay probability) and should be read as a hypothesis.</p>")
     else:
         res += "<p>The headline experiment has not been run in this tier.</p>"
     # 5 what it learned
@@ -389,11 +404,18 @@ probability of improvement, performance profiles, with the training seed within 
     # debugging story
     dbg = ""
     if "debug" in figs:
-        dbg = ("<h3>The debugging story</h3>" + img("debug", "A real failed run and its fix, regenerated from logged diagnostics on a tiny solvable scenario whose optimal return is known.") +
-               "<p>The first PPO runs stayed at random-level survival on a scenario the planner solves. The diagnostics told the story: value loss of 30 to 90, explained variance swinging between -8 and +2, "
-               "and approximate-KL spikes above 6, while entropy barely moved. With a reward of 1 per step and γ = 0.99 returns are around 100, so the value-loss gradient dominated the single joint "
-               "gradient-norm clip (0.5) and left the policy gradient almost nothing. Scaling the learner's reward by 0.01 (the environment and every reported survival number are untouched) fixed it: "
-               "the same scenario was solved in about 30 updates. The failed run is kept in <code>results/&lt;tier&gt;/debug/</code>.</p>")
+        dj = _load(os.path.join(tdir, "debug", "debug.json"))
+        f, g = dj["runs"]["failed_reward_scale_1.0"], dj["runs"]["fixed_reward_scale_0.01"]
+        solved = next((int(u) for u, v in zip(g["update"], g["ep_survival"]) if v >= dj["planner_survival"] - 1e-9), None)
+        dbg = ("<h3>The debugging story</h3>" + img("debug", "A real failed run and its fix, regenerated from logged diagnostics on a tiny solvable scenario whose optimal return is known (planner survival "
+                                                      f"{dj['planner_survival']}).") +
+               f"<p>The first PPO runs sat near random-level survival on a scenario the planner solves. The diagnostics pointed at the optimiser, not the environment: the value loss was "
+               f"{np.mean(f['value_loss'][:20]):.0f} on average over the first 20 updates (vs {np.mean(g['value_loss'][:20]):.3f} after the fix) while entropy barely moved. "
+               "With a reward of 1 per step and γ = 0.99, returns are around 100, so the value-loss gradient dominated the single joint gradient-norm clip (0.5) and left the policy gradient almost nothing. "
+               f"Scaling the learner's reward by 0.01 (the environment and every reported survival number are untouched) solved the scenario "
+               f"{'in ' + str(solved) + ' updates' if solved else 'partly'}, whereas the unscaled run reached {f['ep_survival'][-1]:.0f} of {dj['planner_survival']} after {int(f['update'][-1])} updates. "
+               "The very first failing run (which also showed approximate-KL spikes above 6) was observed during development and not retained; the figure is the regenerated version of the same comparison, "
+               "which reproduces the failure mode as slow learning rather than the spikes. Kept in <code>results/&lt;tier&gt;/debug/</code>.</p>")
     # 6 limitations
     lim = ["<h2>6. Limitations</h2><ul>"
            "<li>One small custom environment. Any statement about regret-guided training holds only under this benchmark, with these limits; nothing is claimed for domain randomization in general.</li>"

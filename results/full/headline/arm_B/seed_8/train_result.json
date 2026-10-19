@@ -1,0 +1,38 @@
+{
+ "out_dir": "/home/user/adaptarena/results/full/headline/arm_B/seed_8",
+ "best_val": 270.9714285714286,
+ "best_update": 925,
+ "final_val": 263.1857142857143,
+ "steps": 1998848,
+ "wall_seconds": 1077.006602525711,
+ "sps": 1855.929197938489,
+ "extra": {},
+ "config": {
+  "total_steps": 2000000,
+  "n_envs": 8,
+  "n_steps": 256,
+  "epochs": 10,
+  "n_minibatches": 4,
+  "seq_len": 64,
+  "lr": 0.001,
+  "gamma": 0.99,
+  "gae_lambda": 0.95,
+  "clip": 0.2,
+  "ent_coef": 0.003,
+  "vf_coef": 0.5,
+  "max_grad_norm": 0.5,
+  "anneal_lr": true,
+  "bootstrap_timeout": true,
+  "reward_scale": 0.01,
+  "seed": 8,
+  "eval_every": 25,
+  "save_fracs": [
+   0.0,
+   0.1,
+   0.5,
+   1.0
+  ]
+ },
+ "model": "ppo_ff",
+ "n_params": 404615
+}

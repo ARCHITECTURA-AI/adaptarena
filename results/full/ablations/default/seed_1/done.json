@@ -1,0 +1,18 @@
+{
+ "wall": 521.1343884468079,
+ "job": {
+  "out_dir": "/home/user/adaptarena/results/full/ablations/default/seed_1",
+  "arm": "B",
+  "model": "ff",
+  "seed": 1,
+  "steps": 600000,
+  "env": {},
+  "ppo": {
+   "lr": 0.001,
+   "ent_coef": 0.003
+  },
+  "val_suite": "/home/user/adaptarena/results/full/suite_val.json"
+ },
+ "best_val": 206.34285714285716,
+ "best_update": 275
+}
