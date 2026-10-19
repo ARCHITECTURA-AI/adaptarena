@@ -218,3 +218,11 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# AdaptArena
+results/**/model_*
+results/**/model_*.zip
+results/*/headline/arm_*/seed_*/train_log.csv.tmp
+site/dist/
+site/node_modules/
+*.egg-info/
