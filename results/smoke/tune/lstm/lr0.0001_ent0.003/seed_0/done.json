@@ -1,0 +1,17 @@
+{
+ "wall": 14.181201696395874,
+ "job": {
+  "out_dir": "/home/user/adaptarena/results/smoke/tune/lstm/lr0.0001_ent0.003/seed_0",
+  "arm": "B",
+  "model": "lstm",
+  "seed": 100,
+  "steps": 10240,
+  "ppo": {
+   "lr": 0.0001,
+   "ent_coef": 0.003
+  },
+  "val_suite": "/home/user/adaptarena/results/smoke/suite_val.json"
+ },
+ "best_val": 74.61904761904762,
+ "best_update": 0
+}

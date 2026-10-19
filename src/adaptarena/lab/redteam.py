@@ -115,4 +115,10 @@ def run(tier_name: str) -> dict:
         print(f"red team: {name}", flush=True)
         out["policies"][name] = search(pol, budget)
     write_json(os.path.join(tdir, "redteam", "redteam.json"), out)
+    from .museum import build_museum
+    for name in ("ppo_ff_armD_seed0", "ppo_ff_armB_seed0"):
+        if name in pols:
+            museum = build_museum(out, pols[name], name)
+            write_json(os.path.join(tdir, "museum", "museum.json"), museum)
+            break
     return out

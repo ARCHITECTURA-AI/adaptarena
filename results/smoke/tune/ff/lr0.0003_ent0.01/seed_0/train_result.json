@@ -1,0 +1,38 @@
+{
+ "out_dir": "/home/user/adaptarena/results/smoke/tune/ff/lr0.0003_ent0.01/seed_0",
+ "best_val": 97.19047619047619,
+ "best_update": 0,
+ "final_val": 83.80952380952381,
+ "steps": 10240,
+ "wall_seconds": 6.620000600814819,
+ "sps": 1546.8276541756832,
+ "extra": {},
+ "config": {
+  "total_steps": 10240,
+  "n_envs": 8,
+  "n_steps": 256,
+  "epochs": 10,
+  "n_minibatches": 4,
+  "seq_len": 64,
+  "lr": 0.0003,
+  "gamma": 0.99,
+  "gae_lambda": 0.95,
+  "clip": 0.2,
+  "ent_coef": 0.01,
+  "vf_coef": 0.5,
+  "max_grad_norm": 0.5,
+  "anneal_lr": true,
+  "bootstrap_timeout": true,
+  "reward_scale": 0.01,
+  "seed": 100,
+  "eval_every": 25,
+  "save_fracs": [
+   0.0,
+   0.1,
+   0.5,
+   1.0
+  ]
+ },
+ "model": "ppo_ff",
+ "n_params": 404615
+}

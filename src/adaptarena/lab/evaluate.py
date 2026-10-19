@@ -72,7 +72,9 @@ def _evaluate_chunk(policy, specs, seeds, env_config, deterministic, record_acti
         gens = [torch.Generator().manual_seed(int(s)) for s in seeds]
         mode = "deterministic" if deterministic else "sampled"
     else:
-        pols = [make_policy(policy) if isinstance(policy, str) else policy() for _ in range(n)]
+        import copy
+        pols = [make_policy(policy) if isinstance(policy, str) else (copy.deepcopy(policy) if isinstance(policy, Policy) else policy())
+                for _ in range(n)]
         for p, s in zip(pols, seeds):
             p.reset(int(s))
         mode = "scripted"

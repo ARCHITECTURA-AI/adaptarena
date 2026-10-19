@@ -1,0 +1,84 @@
+{
+ "seeds": {
+  "own": [
+   106.47619047619048
+  ],
+  "sb3": [
+   75.14285714285714
+  ]
+ },
+ "ci": {
+  "own": {
+   "iqm": 106.47619047619048,
+   "lo": 106.47619047619048,
+   "hi": 106.47619047619048
+  },
+  "sb3": {
+   "iqm": 75.14285714285714,
+   "lo": 75.14285714285714,
+   "hi": 75.14285714285714
+  }
+ },
+ "own_in_sb3_ci": false,
+ "sb3_in_own_ci": false,
+ "curves": {
+  "own": {
+   "steps": [
+    0,
+    20480
+   ],
+   "mean": [
+    71.38095238095238,
+    106.85714285714286
+   ],
+   "min": [
+    71.38095238095238,
+    106.85714285714286
+   ],
+   "max": [
+    71.38095238095238,
+    106.85714285714286
+   ]
+  },
+  "sb3": {
+   "steps": [
+    0,
+    20480
+   ],
+   "mean": [
+    75.76190476190476,
+    71.38095238095238
+   ],
+   "min": [
+    75.76190476190476,
+    71.38095238095238
+   ],
+   "max": [
+    75.76190476190476,
+    71.38095238095238
+   ]
+  }
+ },
+ "curve_overlap_fraction": 0.0,
+ "criteria": {
+  "implementations": [
+   "own PPO feedforward",
+   "Stable-Baselines3 PPO"
+  ],
+  "same": [
+   "hyperparameters",
+   "environment",
+   "reward scaling",
+   "transition budget",
+   "seeds count"
+  ],
+  "seeds": 10,
+  "transition_budget_steps": 1000000,
+  "evaluated_on": "a validation suite with fresh scenarios (not used for checkpoint selection)",
+  "ci_level": 0.95,
+  "passes_if": "each implementation's IQM survival lies inside the other's bootstrap interval AND the mean learning curves lie inside each other's min-max seed band at no less than curve_overlap_min_fraction of evaluation points.\n",
+  "curve_overlap_min_fraction": 0.8,
+  "blocks": "the headline run does not start until the gate passes"
+ },
+ "passed": false
+}

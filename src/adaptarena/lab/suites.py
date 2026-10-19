@@ -89,14 +89,15 @@ def per_seed_score(cond_result: dict) -> float:
 
 
 def open_locked_test_suite(tier_dir: str, purpose: str, n_per_cond: Optional[int] = None,
-                           generate: bool = False) -> Suite:
+                           generate: bool = False, name: str = "suite_test.json",
+                           conditions: Sequence[str] = CONDITIONS) -> Suite:
     """The only sanctioned way to read (or first generate) the locked test suite."""
     info = planmod.verify_plan()
     planmod.check_frozen()
     planmod.log_access(os.path.join(tier_dir, "test_access_log.jsonl"), purpose, info)
-    path = os.path.join(tier_dir, "suite_test.json")
+    path = os.path.join(tier_dir, name)
     if not os.path.exists(path):
         if not generate or n_per_cond is None:
             raise planmod.PlanError("locked test suite has not been generated for this tier")
-        build_suite_file("test", n_per_cond, path)
+        build_suite_file("test", n_per_cond, path, conditions=conditions)
     return Suite.load(path)

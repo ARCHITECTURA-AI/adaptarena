@@ -84,7 +84,7 @@ def _sentence(sc, env: SurvivalEnv, t: int, label: str) -> str:
     vw, vf = _view_has(env, "water"), _view_has(env, "food")
     w = ("water in view" if vw else "no water in view") + (f", nearest ready water {nw} tiles away" if nw is not None else ", no ready water anywhere")
     f = ("food in view" if vf else "no food in view") + (f", nearest ready food {nf} tiles away" if nf is not None else ", no ready food anywhere")
-    return f"Step {t}: hydration {env.hydration // 100}, energy {env.energy // 100}, {w}; {f}. ({label})"
+    return f"Step {t}: hydration {max(0, env.hydration) // 100}, energy {max(0, env.energy) // 100}, {w}; {f}. ({label})"
 
 
 def narrate(spec: ScenarioSpec, actions: List[int], cause: str, pnr: Optional[int], blind: Optional[str]) -> List[str]:
@@ -130,3 +130,26 @@ def build_entry(spec: ScenarioSpec, policy, label: str) -> dict:
     return {"label": label, "spec": spec.to_json(), "survival": rep["survival"], "cause": rep["cause"],
             "point_of_no_return": pnr, "blind_or_blunder": blind,
             "narration": narrate(spec, rep["actions"], rep["cause"], step, blind), "replay": strip_private(rep)}
+
+
+def build_museum(redteam_out: dict, policy, policy_name: str, n_show: int = 5, n_candidates: int = 14) -> dict:
+    """Pick the five most instructive verified failures of `policy` from the red team results."""
+    cands = []
+    for item in redteam_out["policies"].get(policy_name, {}).get("worst", [])[:n_candidates]:
+        spec = ScenarioSpec.from_json(item["spec"])
+        entry = build_entry(spec, policy, f"red-team failure of {policy_name}")
+        if not entry["replay"]["alive"] and entry["point_of_no_return"]["step"] is not None:
+            cands.append(entry)
+    chosen, seen = [], set()
+    for e in sorted(cands, key=lambda e: e["survival"]):  # prefer diverse (cause, label) pairs, then early deaths
+        key = (e["cause"], e["blind_or_blunder"])
+        if key not in seen:
+            chosen.append(e)
+            seen.add(key)
+    for e in sorted(cands, key=lambda e: e["survival"]):
+        if len(chosen) >= n_show:
+            break
+        if e not in chosen:
+            chosen.append(e)
+    return {"policy": policy_name, "entries": chosen[:n_show],
+            "selection": "verified failures (planner-certified scenarios) ordered by red-team score, diversified over cause and blind/blunder label"}
