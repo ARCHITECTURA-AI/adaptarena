@@ -41,11 +41,13 @@ def jobs(tier_name: str) -> List[dict]:
     tier = load_tier(tier_name)
     tdir = tier_dir(tier_name)
     vpath = os.path.join(tdir, "suite_val.json")
+    from .tune import tuned_ppo
+    tuned = tuned_ppo(tier_name, "ff")
     out = []
     for name, (fam, env, ppo) in VARIANTS.items():
         for s in range(tier["ablation_seeds"]):
             out.append(dict(out_dir=os.path.join(tdir, "ablations", name, f"seed_{s}"), arm="B", model="ff", seed=s,
-                            steps=tier["ablation_steps"], env=env, ppo=ppo, val_suite=vpath))
+                            steps=tier["ablation_steps"], env=env, ppo={**tuned, **ppo}, val_suite=vpath))
     return out
 
 

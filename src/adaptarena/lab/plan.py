@@ -86,3 +86,13 @@ def add_amendment(text: str) -> dict:
     with open(AMEND, "a") as f:
         f.write(json.dumps(rec) + "\n")
     return rec
+
+
+def check_frozen(plan: str = PLAN) -> None:
+    """The simulator, difficulty constants, planner and scripts must be byte-identical to what was locked."""
+    import yaml
+    spec = yaml.safe_load(open(plan))
+    for rel, want in spec["frozen_components"].items():
+        path = os.path.join(REPO, rel)
+        if file_hash(path) != want:
+            raise PlanError(f"{rel} changed after the plan was locked; record a dated amendment before evaluating")

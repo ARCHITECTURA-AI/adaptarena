@@ -92,6 +92,7 @@ def open_locked_test_suite(tier_dir: str, purpose: str, n_per_cond: Optional[int
                            generate: bool = False) -> Suite:
     """The only sanctioned way to read (or first generate) the locked test suite."""
     info = planmod.verify_plan()
+    planmod.check_frozen()
     planmod.log_access(os.path.join(tier_dir, "test_access_log.jsonl"), purpose, info)
     path = os.path.join(tier_dir, "suite_test.json")
     if not os.path.exists(path):

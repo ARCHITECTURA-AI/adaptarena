@@ -1,15 +1,20 @@
 # Reproduce tiers. `full` is the published benchmark; the others exist so anyone can check the pipeline quickly.
+# Step counts are transitions summed over all environments.
 smoke:
   seeds: 1
   scenarios_per_condition: 4
   val_per_condition: 3
   steps: 20480
+  tune_steps: 10240
+  tune_seeds: 1
   parity_seeds: 1
   parity_steps: 20480
   ablation_seeds: 1
   ablation_steps: 20480
   memory_seeds: 1
   memory_steps: 20480
+  memory_variant_seeds: 1
+  memory_variant_steps: 20480
   redteam_budget: 20
   stress_scenarios: 4
   probe_episodes: 6
@@ -18,12 +23,16 @@ dev:
   scenarios_per_condition: 20
   val_per_condition: 8
   steps: 400000
+  tune_steps: 150000
+  tune_seeds: 1
   parity_seeds: 3
   parity_steps: 400000
   ablation_seeds: 3
   ablation_steps: 300000
   memory_seeds: 3
   memory_steps: 400000
+  memory_variant_seeds: 3
+  memory_variant_steps: 300000
   redteam_budget: 120
   stress_scenarios: 12
   probe_episodes: 20
@@ -32,12 +41,16 @@ full:
   scenarios_per_condition: 50
   val_per_condition: 10
   steps: 2000000
+  tune_steps: 300000
+  tune_seeds: 3
   parity_seeds: 10
   parity_steps: 1000000
   ablation_seeds: 5
-  ablation_steps: 1000000
-  memory_seeds: 10
+  ablation_steps: 600000
+  memory_seeds: 5
   memory_steps: 2000000
+  memory_variant_seeds: 5
+  memory_variant_steps: 1000000
   redteam_budget: 400
   stress_scenarios: 20
   probe_episodes: 40

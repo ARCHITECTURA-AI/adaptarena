@@ -332,11 +332,13 @@ def headline_jobs(tier_name: str) -> List[dict]:
     tier = load_tier(tier_name)
     tdir = tier_dir(tier_name)
     vpath = os.path.join(tdir, "suite_val.json")
+    from .tune import tuned_ppo
+    tuned = tuned_ppo(tier_name, "ff")
     jobs = []
     for arm in ARMS:
         for s in range(tier["seeds"]):
             jobs.append(dict(out_dir=os.path.join(tdir, "headline", f"arm_{arm}", f"seed_{s}"), arm=arm,
-                             model="ff", seed=s, steps=tier["steps"], val_suite=vpath))
+                             model="ff", seed=s, steps=tier["steps"], ppo=tuned, val_suite=vpath))
     return jobs
 
 

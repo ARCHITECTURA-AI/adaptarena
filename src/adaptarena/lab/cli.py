@@ -23,6 +23,7 @@ def main(argv=None) -> None:
     add("throughput", "benchmark simulator throughput", tier=False)
     add("calibrate", "difficulty calibration on validation seeds (scripts + planner only)")
     add("lock-plan", "hash analysis_plan.yaml (commit the result before touching the test suite)", tier=False)
+    add("tune", "hyper-parameter sweep (validation only)", workers=True)
     add("parity", "own PPO vs SB3 parity gate", workers=True)
     add("headline", "train the four arms and evaluate on the locked suite", workers=True)
     add("ablations", "single-change ablation ladder", workers=True)
@@ -50,6 +51,9 @@ def main(argv=None) -> None:
     elif a.cmd == "calibrate":
         from .calibration import run
         run(a.tier)
+    elif a.cmd == "tune":
+        from .tune import run
+        print(json.dumps(run(a.tier, workers=a.workers), indent=1))
     elif a.cmd == "parity":
         from .experiments import run_parity
         print(json.dumps({k: v for k, v in run_parity(a.tier, a.workers).items() if k != "curves"}, indent=1))
