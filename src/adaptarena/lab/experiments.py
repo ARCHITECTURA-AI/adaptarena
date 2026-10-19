@@ -388,6 +388,17 @@ def evaluate_headline(tier_name: str) -> dict:
             extra.setdefault(arm, []).append({"seed": s, "wall": tr["wall_seconds"], "sps": tr["sps"],
                                               "best_update": tr["best_update"], **{k: v for k, v in tr["extra"].items()
                                                                                  if k != "snapshots"}})
+    # secondary robustness check: sampled actions, kept in their own file and aggregate, never mixed in
+    sampled_scores = {a: {c: [] for c in CONDITIONS} for a in ARMS}
+    sampled_rows: List[dict] = []
+    for arm in ARMS:
+        for s in range(tier["seeds"]):
+            m = load_model(os.path.join(tdir, "headline", f"arm_{arm}", f"seed_{s}"), "ff")
+            ev = suite.evaluate(m, deterministic=False)
+            sampled_rows += _episode_rows(f"arm_{arm}", s, ev, "sampled")
+            for c in CONDITIONS:
+                sampled_scores[arm][c].append(per_seed_score(ev[c]))
+    write_csv(os.path.join(tdir, "headline", "episodes_sampled.csv"), sampled_rows)
     # ladder references on the same suite
     refs = {"random": suite.random_scores(), "reactive_script": suite.script_scores("reactive_script"),
             "memory_script": suite.script_scores("memory_script")}
@@ -396,6 +407,8 @@ def evaluate_headline(tier_name: str) -> dict:
                                             for c in CONDITIONS}, "scripted")
     write_csv(os.path.join(tdir, "headline", "episodes.csv"), episodes)
     out = headline_stats(tier_name, scores, reach, refs, suite, extra)
+    out["sampled_mode"] = {a: S.iqm_with_ci({c: np.array(v) for c, v in sampled_scores[a].items()}) for a in ARMS}
+    write_json(os.path.join(tdir, "headline", "stats.json"), out)
     return out
 
 

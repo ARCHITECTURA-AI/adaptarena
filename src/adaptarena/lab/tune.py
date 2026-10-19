@@ -60,5 +60,9 @@ def tuned_ppo(tier_name: str, model: str) -> dict:
     if not os.path.exists(path):
         return {}
     d = json.load(open(path))
+    from . import plan as planmod
+    amended = os.path.exists(planmod.AMEND) and "lstm-tuning-fallback" in open(planmod.AMEND).read()
+    if amended and model in ("lstm", "ssm") and "ff" in d:  # dated amendment: the LSTM sweep was uninformative
+        return dict(d["ff"]["best"])
     key = model if model in d else ("lstm" if model == "ssm" and "lstm" in d else None)
     return dict(d[key]["best"]) if key else {}

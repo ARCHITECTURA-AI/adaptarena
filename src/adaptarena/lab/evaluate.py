@@ -69,7 +69,7 @@ def _evaluate_chunk(policy, specs, seeds, env_config, deterministic, record_acti
         policy.eval()
         state = policy.initial_state(n)
         first = torch.ones(n)
-        gens = [torch.Generator().manual_seed(int(s)) for s in seeds]
+        gen = torch.Generator().manual_seed(int(seeds[0]) * 7919 + len(seeds))  # one stream per evaluation batch
         mode = "deterministic" if deterministic else "sampled"
     else:
         import copy
@@ -89,7 +89,7 @@ def _evaluate_chunk(policy, specs, seeds, env_config, deterministic, record_acti
                 a = logits.argmax(-1).numpy()
             else:
                 probs = torch.softmax(logits, -1)
-                a = np.array([int(torch.multinomial(probs[i], 1, generator=gens[i])) for i in range(n)])
+                a = torch.multinomial(probs, 1, generator=gen)[:, 0].numpy()
         else:
             a = np.zeros(n, dtype=np.int64)
             for i in np.nonzero(live)[0]:

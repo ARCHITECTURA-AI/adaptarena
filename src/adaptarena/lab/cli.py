@@ -31,6 +31,8 @@ def main(argv=None) -> None:
     add("stress", "stress curves and Kaplan-Meier survival")
     add("redteam", "red team search over scenario space")
     add("probes", "what-it-learned probes")
+    add("export", "experiment export package and released-checkpoint model cards")
+    add("debug-story", "regenerate the debugging story run", tier=True)
     add("site", "build the static showcase site from results")
     add("report", "build the technical report from results")
     add("reproduce", "run every stage for a tier", workers=True)
@@ -76,6 +78,12 @@ def main(argv=None) -> None:
         run(a.tier)
     elif a.cmd == "probes":
         from .probes import run
+        run(a.tier)
+    elif a.cmd == "export":
+        from .export import export, release
+        print(export(a.tier)); print(release(a.tier))
+    elif a.cmd == "debug-story":
+        from .debug_story import run
         run(a.tier)
     elif a.cmd == "site":
         from .site import build

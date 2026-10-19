@@ -123,3 +123,34 @@ def verify_replay(rep: dict) -> bool:
 
 def strip_private(rep: dict) -> dict:
     return {k: v for k, v in rep.items() if not k.startswith("_")}
+
+
+def replay_from_actions(spec: ScenarioSpec, actions: Sequence[int], label: str = "") -> dict:
+    """Replay recorded actions in the reference env (used for human runs; needs only NumPy)."""
+    sc = build_scenario(spec)
+    env = SurvivalEnv()
+    env.reset(sc)
+    frames, valid, hashes = [], [], []
+
+    def snap():
+        t = env.t
+        f = sum((1 << i) for i in range(sc.nf) if t < sc.food_until[i] and env.food_ready[i] <= t)
+        w = sum((1 << i) for i in range(sc.nw) if t < sc.water_until[i] and env.water_ready[i] <= t)
+        frames.append([env.r, env.c, env.energy, env.hydration, int(sc.cold[min(t, sc.horizon - 1)]), f, w])
+
+    done_actions = []
+    for a in actions:
+        if env.done:
+            break
+        if env.t % HASH_EVERY == 0:
+            hashes.append(env.state_hash())
+        snap()
+        _, _, _, _, info = env.step(int(a))
+        done_actions.append(int(a))
+        valid.append(int(info["valid"]))
+    snap()
+    hashes.append(env.state_hash())
+    return {"label": label, "scenario": scenario_payload(sc), "actions": done_actions, "valid": valid,
+            "frames": frames, "survival": env.survived, "alive": bool(env.alive),
+            "cause": P.primary_cause(env.flags), "final_hash": env.state_hash(), "hash_every": HASH_EVERY,
+            "hashes": hashes, "probs": None, "action_seed": 0}

@@ -1,0 +1,33 @@
+{
+ "out_dir": "/home/user/adaptarena/results/full/debug/fixed_reward_scale_0.01",
+ "best_val": 200.0,
+ "best_update": 20,
+ "final_val": 200.0,
+ "steps": 307200,
+ "wall_seconds": 174.65350794792175,
+ "sps": 1758.9111355931138,
+ "extra": {},
+ "config": {
+  "total_steps": 307200,
+  "n_envs": 8,
+  "n_steps": 256,
+  "epochs": 10,
+  "n_minibatches": 4,
+  "seq_len": 64,
+  "lr": 0.0003,
+  "gamma": 0.99,
+  "gae_lambda": 0.95,
+  "clip": 0.2,
+  "ent_coef": 0.01,
+  "vf_coef": 0.5,
+  "max_grad_norm": 0.5,
+  "anneal_lr": true,
+  "bootstrap_timeout": true,
+  "reward_scale": 0.01,
+  "seed": 0,
+  "eval_every": 10,
+  "save_fracs": []
+ },
+ "model": "ppo_ff",
+ "n_params": 404615
+}
