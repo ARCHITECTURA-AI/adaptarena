@@ -30,6 +30,13 @@ def run(tier_name: str, workers: int = 4) -> None:
     ablate(tier_name, workers)
     from .memory import run as memory
     memory(tier_name, workers)
+    # v2.1 (analysis_plan_v2_1.yaml): audit and fresh suite first, then the queue in priority order. The one-off training
+    # profile (`adaptarena v21 profile`) is not part of a reproduction. Smoke runs only the stages that finish in minutes.
+    from .v2_1 import QUEUE, run_stage
+    for st in ("audit", "suite", "rescore"):
+        run_stage(st, tier_name, workers)
+    for st in (("imitation", "mutation", "sweep") if tier_name == "smoke" else QUEUE):
+        run_stage(st, tier_name, workers)
     from .stress import run as stress
     stress(tier_name)
     from .redteam import run as redteam

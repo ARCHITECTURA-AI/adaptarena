@@ -24,12 +24,14 @@ SWEEP_ARMS = ("B", "D")
 EVAL_EVERY = {"mid": 100, "high": 250}  # updates between validations; 25 at 2M, so ~39 evaluations in every run
 
 
-def sweep_jobs(tier_name: str) -> List[dict]:
+def sweep_jobs(tier_name: str, levels=("mid", "high")) -> List[dict]:
     t = load_tier(tier_name)
     tdir = tier_dir(tier_name)
     base = tuned_ppo(tier_name, "ff")
     jobs = []
     for level, steps in (("mid", t["budget_steps_mid"]), ("high", t["budget_steps_high"])):
+        if level not in levels:
+            continue
         for arm in SWEEP_ARMS:
             for s in range(t["budget_seeds"]):
                 jobs.append(dict(out_dir=os.path.join(v21_dir(tier_name, "scale"), f"arm_{arm}", f"steps_{steps}", f"seed_{s}"),
@@ -182,6 +184,8 @@ def run(tier_name: str, workers: int = 4, which=("mutation", "sweep")) -> None:
     if "mutation" in which:
         run_jobs(train_job, mutation_jobs(tier_name), workers)
         evaluate_mutation(tier_name)
+    if "sweep-mid" in which:  # train the middle budget only; scoring waits for the high budget
+        run_jobs(train_job, sweep_jobs(tier_name, ("mid",)), workers)
     if "sweep" in which:
         run_jobs(train_job, sweep_jobs(tier_name), workers)
         evaluate_sweep(tier_name)

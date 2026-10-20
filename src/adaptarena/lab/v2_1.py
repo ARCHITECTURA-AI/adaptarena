@@ -115,7 +115,7 @@ def profile_training(tier_name: str, steps: int = 100_000, parallel: int = 4) ->
     return out
 
 
-STAGES = ("audit", "suite", "rescore", "profile", "imitation", "mapfed", "lstm-retune", "lstm-final", "predictions",
+STAGES = ("sweep-mid", "audit", "suite", "rescore", "profile", "imitation", "mapfed", "lstm-retune", "lstm-final", "predictions",
           "mutation", "sweep", "ssm", "int8", "gamma")
 
 
@@ -164,6 +164,9 @@ def run_stage(stage: str, tier_name: str, workers: int = 4):
     if stage == "mutation":
         from . import phase5
         return phase5.run(tier_name, workers, which=("mutation",))
+    if stage == "sweep-mid":
+        from . import phase5
+        return phase5.run(tier_name, workers, which=("sweep-mid",))
     if stage == "sweep":
         from . import phase5
         return phase5.run(tier_name, workers, which=("sweep",))
@@ -177,3 +180,25 @@ def run_stage(stage: str, tier_name: str, workers: int = 4):
         from . import phase5b
         return phase5b.gamma_run(tier_name, workers)
     raise ValueError(stage)
+
+
+# Priority order from the plan: never cut the imitation ceiling, the 8M points or arms E/E-prime; cut from the end.
+QUEUE = ("mutation", "sweep-mid", "mapfed", "lstm-retune", "lstm-final", "predictions", "ssm", "gamma", "int8", "sweep")
+
+
+def run_queue(tier_name: str, workers: int = 4, stages=QUEUE) -> None:
+    """Run stages in order. Each is resumable; a failing stage is logged and the queue moves on."""
+    import time
+    import traceback
+    log = os.path.join(v21_dir(tier_name), "queue.log")
+    for st in stages:
+        t0 = time.time()
+        with open(log, "a") as f:
+            f.write(f"{time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime())} start {st}\n")
+        try:
+            run_stage(st, tier_name, workers)
+            msg = "ok"
+        except Exception:  # pragma: no cover
+            msg = "FAILED\n" + traceback.format_exc()
+        with open(log, "a") as f:
+            f.write(f"{time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime())} end {st} {msg.strip()} ({time.time() - t0:.0f}s)\n")

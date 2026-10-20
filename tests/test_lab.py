@@ -293,3 +293,25 @@ def test_replay_source_counters_do_not_change_sampling():
     sa = [a.sample(0)[0].sid for _ in range(5)]
     sb = [b.sample(0)[0].sid for _ in range(5)]
     assert sa == sb
+
+
+@pytest.mark.parametrize("arm", ["E", "Eprime", "F"])
+def test_mutation_arms_train_end_to_end_and_log_buffer_stats(arm, tmp_path):
+    """Each new arm runs through the real PPO loop; with a tiny buffer replay (and, for E, mutation) really happens."""
+    import json as _json
+    from adaptarena.core.env import EnvConfig
+    from adaptarena.lab.models import FFPolicy
+    from adaptarena.lab.ppo import PPOConfig, train
+    from adaptarena.lab.sources import make_source
+    src = make_source(arm, 0)
+    src.buf.min_fill = 3
+    src.planner_nodes = 500
+    val = [sample_condition("unseen_layout", np.random.default_rng(1), "val")]
+    res = train(FFPolicy(), PPOConfig(total_steps=24576, seed=0, eval_every=1000), src, EnvConfig(), val, str(tmp_path))
+    ex = _json.load(open(tmp_path / "train_result.json"))["extra"]
+    assert ex["episodes"] > 0 and 0.0 <= ex["repeat_fraction"] <= 1.0 and ex["distinct_scenarios"] > 0
+    assert ex["replays"] > 0, "the buffer never replayed; the test would not exercise the arm"
+    if arm in ("E", "Eprime"):
+        assert ex["children"] > 0 and ex["planner_calls"] > 0
+    else:
+        assert ex["children"] == 0

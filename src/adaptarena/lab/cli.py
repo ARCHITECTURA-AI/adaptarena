@@ -39,7 +39,7 @@ def main(argv=None) -> None:
     add("reproduce", "run every stage for a tier", workers=True)
     v = add("v21", "one AdaptArena v2.1 stage (analysis_plan_v2_1.yaml)", workers=True)
     from .v2_1 import STAGES
-    v.add_argument("stage", choices=list(STAGES))
+    v.add_argument("stage", choices=list(STAGES) + ["queue"])
     a = p.parse_args(argv)
 
     if a.cmd == "check-env":
@@ -96,8 +96,8 @@ def main(argv=None) -> None:
         from .report import build
         build(a.tier)
     elif a.cmd == "v21":
-        from .v2_1 import run_stage
-        run_stage(a.stage, a.tier, a.workers)
+        from .v2_1 import run_queue, run_stage
+        (run_queue if a.stage == "queue" else lambda t, w: run_stage(a.stage, t, w))(a.tier, a.workers)
     elif a.cmd == "reproduce":
         from .reproduce import run
         run(a.tier, a.workers)
