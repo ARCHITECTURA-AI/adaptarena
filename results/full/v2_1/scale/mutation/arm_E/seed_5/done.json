@@ -1,0 +1,17 @@
+{
+ "wall": 1376.7701995372772,
+ "job": {
+  "out_dir": "/home/user/adaptarena/results/full/v2_1/scale/mutation/arm_E/seed_5",
+  "arm": "E",
+  "model": "ff",
+  "seed": 5,
+  "steps": 2000000,
+  "ppo": {
+   "lr": 0.001,
+   "ent_coef": 0.003
+  },
+  "val_suite": "/home/user/adaptarena/results/full/suite_val.json"
+ },
+ "best_val": 252.5142857142857,
+ "best_update": 900
+}
