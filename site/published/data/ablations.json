@@ -1,0 +1,256 @@
+{
+ "label": "exploratory: validation suite only, never the locked test suite",
+ "obs_versions": {
+  "default": "obs-v9",
+  "gamma_0.9": "obs-v9",
+  "gamma_0.999": "obs-v9",
+  "vision_5": "obs-v5",
+  "vision_3": "obs-v3",
+  "no_prev_action": "obs-v9-noprev",
+  "no_cost_stat": "obs-v9-nocost",
+  "reward_naive": "obs-v9",
+  "reward_potential": "obs-v9",
+  "timeout_as_death": "obs-v9"
+ },
+ "variants": {
+  "default": {
+   "family": "default",
+   "iqm": {
+    "iqm": 0.19111500233573425,
+    "lo": 0.1743136534370237,
+    "hi": 0.212399474557587
+   },
+   "raw_survival_mean": 199.3057142857143,
+   "raw_by_condition": {
+    "familiar": 413.02,
+    "unseen_layout": 273.44,
+    "scarce_food": 145.1,
+    "scarce_water": 140.46,
+    "higher_move_cost": 166.0,
+    "cold_snap": 150.18,
+    "combined_shift": 106.93999999999998
+   }
+  },
+  "gamma_0.9": {
+   "family": "discount",
+   "iqm": {
+    "iqm": 0.036144272696473204,
+    "lo": 0.031248309198842302,
+    "hi": 0.042054897773158455
+   },
+   "raw_survival_mean": 102.55714285714284,
+   "raw_by_condition": {
+    "familiar": 120.16,
+    "unseen_layout": 107.62,
+    "scarce_food": 100.74000000000001,
+    "scarce_water": 100.33999999999999,
+    "higher_move_cost": 97.74000000000001,
+    "cold_snap": 99.4,
+    "combined_shift": 91.9
+   },
+   "effect_vs_default": {
+    "diff": -0.15497072963926106,
+    "lo": -0.17672914711813698,
+    "hi": -0.13655394464985202
+   },
+   "finding": "hurts"
+  },
+  "gamma_0.999": {
+   "family": "discount",
+   "iqm": {
+    "iqm": 0.1976619378739097,
+    "lo": 0.164615074280358,
+    "hi": 0.23571890343196722
+   },
+   "raw_survival_mean": 187.96857142857144,
+   "raw_by_condition": {
+    "familiar": 321.26000000000005,
+    "unseen_layout": 229.26,
+    "scarce_food": 151.45999999999998,
+    "scarce_water": 164.42,
+    "higher_move_cost": 172.87999999999997,
+    "cold_snap": 173.02,
+    "combined_shift": 103.47999999999999
+   },
+   "effect_vs_default": {
+    "diff": 0.006546935538175452,
+    "lo": -0.033061125094305185,
+    "hi": 0.045684893702134695
+   },
+   "finding": "no measurable effect (interval includes zero)"
+  },
+  "vision_5": {
+   "family": "vision",
+   "iqm": {
+    "iqm": 0.17052851814723682,
+    "lo": 0.1509970034915169,
+    "hi": 0.19352490835492145
+   },
+   "raw_survival_mean": 177.10285714285715,
+   "raw_by_condition": {
+    "familiar": 330.23999999999995,
+    "unseen_layout": 209.14000000000001,
+    "scarce_food": 135.88000000000002,
+    "scarce_water": 159.6,
+    "higher_move_cost": 146.92000000000002,
+    "cold_snap": 157.9,
+    "combined_shift": 100.04
+   },
+   "effect_vs_default": {
+    "diff": -0.020586484188497428,
+    "lo": -0.04899540618255943,
+    "hi": 0.008308755899349004
+   },
+   "finding": "no measurable effect (interval includes zero)"
+  },
+  "vision_3": {
+   "family": "vision",
+   "iqm": {
+    "iqm": 0.08619250127588933,
+    "lo": 0.07351784011040839,
+    "hi": 0.09908265254949958
+   },
+   "raw_survival_mean": 128.20285714285714,
+   "raw_by_condition": {
+    "familiar": 187.01999999999998,
+    "unseen_layout": 124.14000000000001,
+    "scarce_food": 115.5,
+    "scarce_water": 126.75999999999999,
+    "higher_move_cost": 129.86,
+    "cold_snap": 116.4,
+    "combined_shift": 97.73999999999998
+   },
+   "effect_vs_default": {
+    "diff": -0.10492250105984492,
+    "lo": -0.1297501712713848,
+    "hi": -0.08346611226373185
+   },
+   "finding": "hurts"
+  },
+  "no_prev_action": {
+   "family": "previous action",
+   "iqm": {
+    "iqm": 0.08227030787255024,
+    "lo": 0.06419974321225165,
+    "hi": 0.10155004647245476
+   },
+   "raw_survival_mean": 139.41428571428574,
+   "raw_by_condition": {
+    "familiar": 281.36,
+    "unseen_layout": 143.32,
+    "scarce_food": 124.25999999999999,
+    "scarce_water": 119.68000000000002,
+    "higher_move_cost": 103.44000000000001,
+    "cold_snap": 112.48000000000002,
+    "combined_shift": 91.36
+   },
+   "effect_vs_default": {
+    "diff": -0.10884469446318401,
+    "lo": -0.1376537582953629,
+    "hi": -0.08266778250167436
+   },
+   "finding": "hurts"
+  },
+  "no_cost_stat": {
+   "family": "energy-cost stat",
+   "iqm": {
+    "iqm": 0.20428205072496236,
+    "lo": 0.17704975826801253,
+    "hi": 0.23658121706755267
+   },
+   "raw_survival_mean": 189.2342857142857,
+   "raw_by_condition": {
+    "familiar": 335.21999999999997,
+    "unseen_layout": 207.77999999999997,
+    "scarce_food": 131.3,
+    "scarce_water": 154.56,
+    "higher_move_cost": 196.38,
+    "cold_snap": 198.64000000000001,
+    "combined_shift": 100.76000000000002
+   },
+   "effect_vs_default": {
+    "diff": 0.013167048389228109,
+    "lo": -0.021173231861310603,
+    "hi": 0.049767559802224255
+   },
+   "finding": "no measurable effect (interval includes zero)"
+  },
+  "reward_naive": {
+   "family": "reward",
+   "iqm": {
+    "iqm": 0.18928237671348602,
+    "lo": 0.16531473324279075,
+    "hi": 0.2190056093949438
+   },
+   "raw_survival_mean": 191.02285714285716,
+   "raw_by_condition": {
+    "familiar": 361.02,
+    "unseen_layout": 262.28,
+    "scarce_food": 133.34,
+    "scarce_water": 140.4,
+    "higher_move_cost": 190.95999999999998,
+    "cold_snap": 157.92000000000002,
+    "combined_shift": 91.24
+   },
+   "effect_vs_default": {
+    "diff": -0.0018326256222482296,
+    "lo": -0.03363165777751441,
+    "hi": 0.03163448890458105
+   },
+   "finding": "no measurable effect (interval includes zero)"
+  },
+  "reward_potential": {
+   "family": "reward",
+   "iqm": {
+    "iqm": 0.1580589232594863,
+    "lo": 0.13231589717219144,
+    "hi": 0.19350978832837368
+   },
+   "raw_survival_mean": 176.60571428571433,
+   "raw_by_condition": {
+    "familiar": 326.08000000000004,
+    "unseen_layout": 219.33999999999997,
+    "scarce_food": 129.0,
+    "scarce_water": 149.48,
+    "higher_move_cost": 144.16,
+    "cold_snap": 168.3,
+    "combined_shift": 99.88
+   },
+   "effect_vs_default": {
+    "diff": -0.03305607907624794,
+    "lo": -0.06704330502875964,
+    "hi": 0.004089313605286068
+   },
+   "finding": "no measurable effect (interval includes zero)"
+  },
+  "timeout_as_death": {
+   "family": "truncation",
+   "iqm": {
+    "iqm": 0.18849094953182224,
+    "lo": 0.1534066267925074,
+    "hi": 0.23144962855196483
+   },
+   "raw_survival_mean": 188.04,
+   "raw_by_condition": {
+    "familiar": 352.02,
+    "unseen_layout": 207.34,
+    "scarce_food": 147.61999999999998,
+    "scarce_water": 147.88,
+    "higher_move_cost": 192.37999999999997,
+    "cold_snap": 170.57999999999998,
+    "combined_shift": 98.46000000000001
+   },
+   "effect_vs_default": {
+    "diff": -0.002624052803912008,
+    "lo": -0.04409678543133618,
+    "hi": 0.042829740520809706
+   },
+   "finding": "no measurable effect (interval includes zero)"
+  }
+ },
+ "wasted_interact_fraction": {
+  "reward_naive": 0.25890124587633023,
+  "reward_potential": 0.26728911066240163,
+  "default": 0.28856062033374713
+ }
+}
