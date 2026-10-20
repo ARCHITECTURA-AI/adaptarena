@@ -4,6 +4,7 @@ import { initMuseum } from "./museum";
 import { initPlay } from "./play";
 import { initProbes } from "./probes";
 import { initStress } from "./stress";
+import { ambient, countUp, revealOnScroll, themeToggle } from "./hero";
 import { el } from "./types";
 
 const pages: Record<string, (root: HTMLElement) => Promise<void>> = {
@@ -15,3 +16,8 @@ const page = document.body.dataset.page ?? "";
 if (root && pages[page]) {
   pages[page](root).catch((e: Error) => root.append(el("p", { class: "error", role: "alert" }, `Could not load this page's data: ${e.message}`)));
 }
+
+themeToggle();
+ambient();
+document.querySelectorAll<HTMLElement>("[data-to]").forEach(countUp);
+revealOnScroll();
