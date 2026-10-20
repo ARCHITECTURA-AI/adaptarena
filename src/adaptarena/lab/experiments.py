@@ -537,10 +537,12 @@ def policy_zoo(tdir: str, tier: dict, include_memory: bool = True, max_seeds: Op
                  "reactive_script": {"rung": 2, "kind": "script", "policies": ["reactive_script"]},
                  "memory_script": {"rung": 3, "kind": "script", "policies": ["memory_script"]}}
     seeds = range(tier["seeds"] if max_seeds is None else min(max_seeds, tier["seeds"]))
-    for arm in ("B", "D"):
+    v21 = os.path.join(tdir, "v2_1")
+    for arm in ("B", "D", "E", "Eprime"):  # B and D are v2 headline runs; E and E-prime are the v2.1 mutation arms
         ms = []
         for s in seeds:
-            d = os.path.join(tdir, "headline", f"arm_{arm}", f"seed_{s}")
+            d = (os.path.join(tdir, "headline", f"arm_{arm}", f"seed_{s}") if arm in ("B", "D")
+                 else os.path.join(v21, "scale", "mutation", f"arm_{arm}", f"seed_{s}"))
             if os.path.exists(os.path.join(d, "model_best.pt")):
                 ms.append(load_model(d, "ff"))
         if ms:
@@ -552,8 +554,20 @@ def policy_zoo(tdir: str, tier: dict, include_memory: bool = True, max_seeds: Op
                 d = os.path.join(tdir, "memory", kind, "default", f"seed_{s}")
                 if os.path.exists(os.path.join(d, "model_best.pt")):
                     ms.append(load_model(d, kind))
+            if kind == "ssm":  # v2.1 trained the SSM rung (if it trained at all)
+                for s in range(tier.get("ssm_seeds", 0)):
+                    d = os.path.join(v21, "ssm_int8", "ssm", "final", f"seed_{s}")
+                    if os.path.exists(os.path.join(d, "model_best.pt")):
+                        ms.append(load_model(d, "ssm"))
             if ms:
                 zoo[f"ppo_{kind}"] = {"rung": rung, "kind": "model", "policies": ms}
+        ms = []
+        for s in range(10):  # the retuned LSTM (v2.1 Phase 4.3) sits next to the v2 default LSTM on rung 7
+            d = os.path.join(v21, "diagnose", "lstm_final", f"seed_{s}")
+            if os.path.exists(os.path.join(d, "model_best.pt")):
+                ms.append(load_model(d, "lstm"))
+        if ms:
+            zoo["ppo_lstm_retuned"] = {"rung": 7, "kind": "model", "policies": ms}
     return zoo
 
 

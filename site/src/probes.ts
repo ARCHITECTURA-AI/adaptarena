@@ -20,6 +20,27 @@ function treeList(nodes: TreeNode[], names: string[], i: number): HTMLElement {
   return li;
 }
 
+interface Imitation { tier_label: string; episodes: number; samples: number; script: Record<string, { aggregate: number }>;
+  clones: Record<string, { aggregate_mean: Record<string, number> }>; dagger?: Record<string, { round: number; scores: Record<string, { aggregate: number }> }[]> }
+
+// Imitation ceiling (v2.1, diagnostic): how close each architecture gets to the memory script when it is cloned, with no RL.
+async function imitationSection(root: HTMLElement): Promise<void> {
+  let im: Imitation;
+  try { im = await getJSON<Imitation>("data/imitation.json"); } catch { return; }
+  const rows: [string, number][] = [["memory script (the teacher)", im.script.suite_val.aggregate]];
+  for (const [k, c] of Object.entries(im.clones)) rows.push([`${k} clone`, c.aggregate_mean.suite_val]);
+  for (const [k, rs] of Object.entries(im.dagger ?? {})) rows.push([`${k} clone after ${rs.length - 1} DAgger rounds`, rs[rs.length - 1].scores.suite_val.aggregate]);
+  const box = el("div", { class: "bars", role: "img", "aria-label": "Imitation ceiling: ladder-normalised score of cloned policies against the memory script" });
+  for (const [name, v] of rows) {
+    const bar = el("div", { class: "bar" });
+    bar.style.width = `${Math.max(0, Math.min(1, v)) * 100}%`;
+    box.append(el("div", { class: "barrow" }, el("span", { class: "barname" }, name), el("div", { class: "bartrack" }, bar), el("span", { class: "barval" }, v.toFixed(2))));
+  }
+  root.append(el("h3", {}, "Imitation ceiling (v2.1, diagnostic)"),
+    el("p", { class: "note" }, `Each net was trained by cross-entropy on ${im.samples.toLocaleString()} samples from ${im.episodes} episodes of the memory script, with no reinforcement learning, then scored like any other policy (validation suite, ladder-normalised: random = 0, planner = 1). Read it correctly: this shows what each architecture can reproduce from observations at this data size; it does not show what the policy "understands".`),
+    box);
+}
+
 export async function initProbes(root: HTMLElement): Promise<void> {
   const d = await getJSON<Probes>("data/probes.json");
   const names = Object.keys(d.policies);
@@ -61,4 +82,5 @@ export async function initProbes(root: HTMLElement): Promise<void> {
   };
   sel.onchange = draw;
   draw();
+  await imitationSection(root);
 }

@@ -30,7 +30,9 @@ INTERVENTIONS = [
 ]
 RUNG_LABELS = {"random": "Rung 1: uniform random", "reactive_script": "Rung 2: reactive script",
                "memory_script": "Rung 3: memory script", "ppo_ff_armB": "Rung 5: PPO feedforward (arm B)",
-               "ppo_ff_armD": "Rung 5: PPO feedforward (arm D)", "ppo_lstm": "Rung 7: PPO + LSTM",
+               "ppo_ff_armD": "Rung 5: PPO feedforward (arm D)", "ppo_ff_armE": "Rung 5: PPO feedforward (arm E, v2.1)",
+               "ppo_ff_armEprime": "Rung 5: PPO feedforward (arm E-prime, v2.1)", "ppo_lstm": "Rung 7: PPO + LSTM",
+               "ppo_lstm_retuned": "Rung 7: PPO + LSTM (retuned, v2.1)",
                "ppo_ssm": "Rung 8: PPO + SSM", "planner": "Rung 9: reference planner"}
 
 
@@ -224,6 +226,10 @@ def build(tier_name: str, out: str = None) -> str:
                      ("parity/parity.json", "parity.json"), ("redteam/redteam.json", "redteam.json"),
                      ("calibration.json", "calibration.json"), ("manifest.json", "manifest.json")):
         _copy_if(os.path.join(tdir, src), os.path.join(data, dst))
+    for src, dst in (("v2_1/diagnose/imitation.json", "imitation.json"), ("v2_1/scale/mutation.json", "mutation.json"),
+                     ("v2_1/scale/sweep.json", "sweep.json"), ("v2_1/diagnose/predictions.json", "predictions.json")):
+        _copy_if(os.path.join(tdir, src), os.path.join(data, dst))
+    _copy_if(os.path.join(planmod.REPO, "analysis_plan_v2_1.yaml"), os.path.join(data, "analysis_plan_v2_1.yaml"))
     for src in ("headline/episodes.csv", "headline/aggregate.csv", "headline/comparisons_appendix.csv", "ablations/ablations.csv"):
         _copy_if(os.path.join(tdir, src), os.path.join(data, "results", os.path.basename(src)))
     _copy_if(os.path.join(planmod.REPO, "analysis_plan.yaml"), os.path.join(data, "analysis_plan.yaml"))
