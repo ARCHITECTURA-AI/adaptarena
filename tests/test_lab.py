@@ -208,9 +208,88 @@ def test_imitation_smoke_collect_train_score(tmp_path):
     from adaptarena.lab import imitation as I
     ep = I.collect(4, seed=0, workers=1)
     assert len(ep) == 4 and ep.n_samples > 0
-    I.save_episodes(ep, str(tmp_path / "d.npz"))
-    back = I.load_episodes(str(tmp_path / "d.npz"))
+    I.save_episodes(ep, str(tmp_path / "d"))
+    back = I.load_episodes(str(tmp_path / "d"))
     assert back.n_samples == ep.n_samples and np.array_equal(back.act[0], ep.act[0])
     for kind, w in (("ff", 64), ("lstm", 64)):
         m = I.train_clone(kind, ep, 1, 0, window=w)
         assert 0.0 <= I.action_agreement(m, kind, ep) <= 1.0
+
+
+# ---------------------------------------------------------------------------------------- v2.1 Phase 5a
+def test_mutated_specs_stay_inside_the_training_distribution():
+    """No child may leave the arm B training distribution; otherwise test conditions would leak into training."""
+    from adaptarena.core.distributions import sample_train
+    from adaptarena.lab.plr import in_training_distribution, mutate_spec
+    rng = np.random.default_rng(0)
+    for _ in range(300):  # the checker accepts what the training sampler draws
+        assert in_training_distribution(sample_train(rng))
+    for cond in ("scarce_food", "scarce_water", "higher_move_cost", "cold_snap", "combined_shift", "unseen_layout"):
+        # and it rejects the test conditions (unseen_layout is the same range but a held-out layout id)
+        spec = sample_condition(cond, rng, "test")
+        assert not in_training_distribution(spec), cond
+    mrng = np.random.default_rng(1)
+    for _ in range(400):
+        spec = sample_train(rng)
+        for _ in range(6):  # chains of mutations, so clipping at every edge gets exercised
+            child = mutate_spec(spec, mrng)
+            assert in_training_distribution(child), child
+            assert child.sid != spec.sid
+            spec = child
+
+
+def test_mutation_is_pure_and_seeded():
+    from adaptarena.core.distributions import sample_train
+    from adaptarena.lab.plr import mutate_spec
+    spec = sample_train(np.random.default_rng(2))
+    a = mutate_spec(spec, np.random.default_rng(7))
+    b = mutate_spec(spec, np.random.default_rng(7))
+    assert a == b and a is not spec
+
+
+def _drive(src, n_episodes=160, seed=0):
+    """Feed a source fake episode outcomes; returns the sequence of origins it handed out."""
+    rng = np.random.default_rng(seed)
+    origins = []
+    for _ in range(n_episodes):
+        spec, meta = src.sample(0)
+        origins.append(meta[0])
+        src.episode_end(meta, int(rng.integers(50, 400)), float(rng.random()))
+    return origins
+
+
+def test_mutation_arms_share_code_and_queue_children():
+    from adaptarena.lab.sources import MutationSource, make_source
+    kw = dict(capacity=24, planner_nodes=500)
+    e = MutationSource("regret", 0, mutate=True, **kw)
+    ep = MutationSource("value_loss", 0, mutate=True, **kw)
+    kw_buf = dict(min_fill=8)
+    for s in (e, ep):
+        s.buf.min_fill = 8
+    oe, op = _drive(e), _drive(ep)
+    assert "child" in oe and "child" in op and "replay" in oe
+    st = e.stats()
+    assert st["children"] > 0 and 0.0 <= st["uncertified_rate"] <= 1.0
+    assert st["children"] == st["children_rejected_uncertified"] + st["children_accepted"] + st["children_rejected_by_buffer"] + len(e.pending)
+    assert type(make_source("E", 0)) is type(make_source("Eprime", 0)) is MutationSource
+    assert make_source("E", 0).kind == "regret" and make_source("Eprime", 0).kind == "value_loss"
+
+
+def test_arm_f_plays_each_scenario_four_times_and_has_no_children():
+    from adaptarena.lab.sources import MutationSource
+    f = MutationSource("regret", 0, mutate=False, rollouts=4, capacity=24, planner_nodes=500)
+    f.buf.min_fill = 8
+    origins = _drive(f, n_episodes=200)
+    assert set(origins) == {"repeat"} and f.children == 0
+    # every fresh job contributes exactly four rollouts of one spec
+    assert f.episodes >= 200 and f.buf.size > 0
+
+
+def test_replay_source_counters_do_not_change_sampling():
+    """The v2 arms D/C gained diagnostics only: same seed, same sequence of scenarios."""
+    from adaptarena.lab.sources import ReplaySource
+    a, b = ReplaySource("regret", 3, planner_nodes=300), ReplaySource("regret", 3, planner_nodes=300)
+    a.buf.min_fill = b.buf.min_fill = 8
+    sa = [a.sample(0)[0].sid for _ in range(5)]
+    sb = [b.sample(0)[0].sid for _ in range(5)]
+    assert sa == sb

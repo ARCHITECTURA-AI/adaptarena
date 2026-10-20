@@ -120,10 +120,12 @@ def train_job(job: dict) -> None:
         kw.setdefault("n_minibatches", 2)
     cfg = PPOConfig(**kw)
     torch.manual_seed(job["seed"])
-    model = make_model(job["model"])
+    from .memory import OBS_VARIANTS  # v2 observation by default; "v9-map" appends the hand-fed map channels
+    factory, obs_dim = OBS_VARIANTS[job.get("obs", "v2")]
+    model = make_model(job["model"], obs_dim=obs_dim)
     source = make_source(job.get("arm", "B"), job["seed"])
     t0 = time.time()
-    res = train(model, cfg, source, env_cfg, val_specs, out)
+    res = train(model, cfg, source, env_cfg, val_specs, out, env_factory=factory, eval_env_factory=factory)
     write_json(os.path.join(out, "done.json"), {"wall": time.time() - t0, "job": job,
                                                 "best_val": res.best_val, "best_update": res.best_update})
 

@@ -9,7 +9,72 @@ from typing import Optional
 
 import numpy as np
 
+from ..core import distributions as D
 from ..core.scenario import ScenarioSpec
+
+# ---- mutation (v2.1 arms E, E-prime). Bounds are the arm B training distribution, read from core/distributions.py.
+# Seeds and layouts are re-rolled inside the training split (layouts 0..TRAIN_LAYOUTS-1, seeds from the training
+# base), so a child can never land on a validation or test layout.
+EDITS = ("sites", "wall", "delay", "cost", "cold", "seed", "layout")
+EDIT_P = np.array([2, 2, 2, 2, 2, 2, 0.5])  # relative weights; layout re-rolls are rare
+EDIT_P = EDIT_P / EDIT_P.sum()
+
+
+def _clip(v: int, lo_hi) -> int:
+    return int(min(max(v, lo_hi[0]), lo_hi[1]))
+
+
+def mutate_spec(spec: ScenarioSpec, rng: np.random.Generator) -> ScenarioSpec:
+    """One child with 1 to 2 edits (pure and seeded: same spec and rng state, same child).
+
+    sites: n_food or n_water +-1. wall: wall_pct +-3. delay: food or water respawn delay window shifted by +-5
+    (min and max together, so the span stays in its training range). cost: move_cost_pct +-10. cold: cold_pct +-3.
+    seed: re-roll the timing or the weather seed. layout: re-roll the layout (low probability).
+    Every result is clipped to the training distribution. An edit that clipping turns into a no-op is retried.
+    """
+    for _ in range(8):
+        child = spec
+        for kind in rng.choice(len(EDITS), size=int(rng.integers(1, 3)), replace=False, p=EDIT_P):
+            kind = EDITS[kind]
+            sign = int(rng.choice((-1, 1)))
+            if kind == "sites":
+                f = "n_food" if rng.random() < 0.5 else "n_water"
+                lim = D.TRAIN_FOOD if f == "n_food" else D.TRAIN_WATER
+                child = child.with_(**{f: _clip(getattr(child, f) + sign, lim)})
+            elif kind == "wall":
+                child = child.with_(wall_pct=_clip(child.wall_pct + 3 * sign, D.TRAIN_WALL))
+            elif kind == "delay":
+                w = "food" if rng.random() < 0.5 else "water"
+                lo, hi = getattr(child, f"{w}_delay_min"), getattr(child, f"{w}_delay_max")
+                new_lo = _clip(lo + 5 * sign, D.TRAIN_DELAY_MIN)
+                child = child.with_(**{f"{w}_delay_min": new_lo, f"{w}_delay_max": new_lo + (hi - lo)})
+            elif kind == "cost":
+                child = child.with_(move_cost_pct=_clip(child.move_cost_pct + 10 * sign, D.TRAIN_COST))
+            elif kind == "cold":
+                child = child.with_(cold_pct=_clip(child.cold_pct + 3 * sign, D.TRAIN_COLD))
+            elif kind == "seed":
+                f = "timing_seed" if rng.random() < 0.5 else "weather_seed"
+                child = child.with_(**{f: int(rng.integers(0, D.SEED_SPAN + 1))})
+            else:
+                child = child.with_(layout_id=int(rng.integers(0, D.TRAIN_LAYOUTS)))
+        if child.sid != spec.sid:
+            return child
+    return child
+
+
+def in_training_distribution(spec: ScenarioSpec) -> bool:
+    """True when every field the training sampler draws lies in its training range (used to test mutation)."""
+    span = lambda a, b: b - a
+    return (D.TRAIN_FOOD[0] <= spec.n_food <= D.TRAIN_FOOD[1] and D.TRAIN_WATER[0] <= spec.n_water <= D.TRAIN_WATER[1]
+            and D.TRAIN_WALL[0] <= spec.wall_pct <= D.TRAIN_WALL[1]
+            and D.TRAIN_DELAY_MIN[0] <= spec.food_delay_min <= D.TRAIN_DELAY_MIN[1]
+            and D.TRAIN_DELAY_MIN[0] <= spec.water_delay_min <= D.TRAIN_DELAY_MIN[1]
+            and D.TRAIN_DELAY_SPAN[0] <= span(spec.food_delay_min, spec.food_delay_max) <= D.TRAIN_DELAY_SPAN[1]
+            and D.TRAIN_DELAY_SPAN[0] <= span(spec.water_delay_min, spec.water_delay_max) <= D.TRAIN_DELAY_SPAN[1]
+            and D.TRAIN_COST[0] <= spec.move_cost_pct <= D.TRAIN_COST[1]
+            and D.TRAIN_COLD[0] <= spec.cold_pct <= D.TRAIN_COLD[1]
+            and 0 <= spec.layout_id < D.TRAIN_LAYOUTS and 0 <= spec.timing_seed <= D.SEED_SPAN
+            and 0 <= spec.weather_seed <= D.SEED_SPAN and spec.interventions == () and spec.cold_len == 40)
 
 
 class PLRBuffer:
@@ -48,6 +113,9 @@ class PLRBuffer:
         self.last_seen[idx] = self.episode_count
         self.replays += 1
         return idx, self.specs[idx], self.extra[idx]
+
+    def min_score(self) -> float:
+        return float(self.scores[:self.size].min()) if self.size else -np.inf
 
     def note_episode(self) -> None:
         self.episode_count += 1

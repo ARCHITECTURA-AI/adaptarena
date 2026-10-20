@@ -62,13 +62,16 @@ class Episodes:
         self.grid: List[np.ndarray] = []
         self.stats: List[np.ndarray] = []
         self.act: List[np.ndarray] = []
+        self.base = None  # (grid, stats, act) memory-mapped arrays when loaded from disk and not extended
 
     def add(self, grid, stats, act):
+        self.base = None
         self.grid.append(np.asarray(grid, np.float16))
         self.stats.append(np.asarray(stats, np.float32))
         self.act.append(np.asarray(act, np.int8))
 
     def extend(self, other: "Episodes"):
+        self.base = None
         self.grid += other.grid
         self.stats += other.stats
         self.act += other.act
@@ -210,8 +213,9 @@ def train_clone(kind: str, ep: Episodes, epochs: int, seed: int, window: int = 6
     t0 = time.time()
     model.train()
     if kind == "ff":
-        grid_all, stats_all = np.concatenate(ep.grid), np.concatenate(ep.stats)
-        acts = np.concatenate(ep.act).astype(np.int64)
+        grid_all, stats_all, acts = ep.base if ep.base is not None else (
+            np.concatenate(ep.grid), np.concatenate(ep.stats), np.concatenate(ep.act))
+        acts = np.asarray(acts, dtype=np.int64)
     for e in range(epochs):
         if kind == "ff":
             perm = rng.permutation(len(acts))
@@ -299,17 +303,23 @@ def script_reference(suites: Dict[str, Suite]) -> dict:
 
 
 def save_episodes(ep: Episodes, path: str) -> None:
-    os.makedirs(os.path.dirname(path), exist_ok=True)
-    np.savez(path, grid=np.concatenate(ep.grid), stats=np.concatenate(ep.stats), act=np.concatenate(ep.act),
-             lens=np.array([len(a) for a in ep.act]))
+    """Writes <path>/{grid,stats,act,lens}.npy so readers can memory-map them (workers share one page cache)."""
+    os.makedirs(path, exist_ok=True)
+    np.save(os.path.join(path, "grid.npy"), np.concatenate(ep.grid))
+    np.save(os.path.join(path, "stats.npy"), np.concatenate(ep.stats))
+    np.save(os.path.join(path, "act.npy"), np.concatenate(ep.act))
+    np.save(os.path.join(path, "lens.npy"), np.array([len(a) for a in ep.act]))
 
 
 def load_episodes(path: str) -> Episodes:
-    z = np.load(path)
+    grid, stats, act, lens = (np.load(os.path.join(path, f"{k}.npy"), mmap_mode="r") for k in ("grid", "stats", "act", "lens"))
     out, lo = Episodes(), 0
-    for L in z["lens"]:
-        out.add(z["grid"][lo:lo + L], z["stats"][lo:lo + L], z["act"][lo:lo + L])
+    for L in np.asarray(lens):
+        out.grid.append(grid[lo:lo + L])
+        out.stats.append(stats[lo:lo + L])
+        out.act.append(act[lo:lo + L])
         lo += int(L)
+    out.base = (grid, stats, act)
     return out
 
 
@@ -323,8 +333,8 @@ def _clone_job(args) -> dict:
     tier_name, key, kind, window, sd, epochs = args
     from .v2_1 import v21_dir
     odir = v21_dir(tier_name, "diagnose")
-    data = load_episodes(os.path.join(odir, "data", "script_train.npz"))
-    held = load_episodes(os.path.join(odir, "data", "script_heldout.npz"))
+    data = load_episodes(os.path.join(odir, "data", "script_train"))
+    held = load_episodes(os.path.join(odir, "data", "script_heldout"))
     m = train_clone(kind, data, epochs, sd, window=window)
     _save_clone(m, os.path.join(odir, "clones", key, f"seed_{sd}"))
     return {"key": key, "seed": sd, "agreement_heldout": action_agreement(m, kind, held),
@@ -341,8 +351,8 @@ def run(tier_name: str, workers: int = 4, dagger_rounds: int = 3, log=print) -> 
     t0 = time.time()
     data = collect(n_ep, seed=0, workers=workers)
     held = collect(max(10, n_ep // 20), seed=1, workers=workers)
-    save_episodes(data, os.path.join(odir, "data", "script_train.npz"))
-    save_episodes(held, os.path.join(odir, "data", "script_heldout.npz"))
+    save_episodes(data, os.path.join(odir, "data", "script_train"))
+    save_episodes(held, os.path.join(odir, "data", "script_heldout"))
     log(f"  collected {len(data)} episodes, {data.n_samples} samples in {time.time() - t0:.0f}s")
     out = {"tier_label": "diagnostic", "episodes": len(data), "samples": data.n_samples, "epochs": epochs,
            "step_budget": STEP_BUDGET, "script": script_reference(suites), "clones": {}, "dagger": {}}
@@ -375,7 +385,7 @@ def _dagger_job(args) -> tuple:
     n_new = max(10, tier["imitation_episodes"] // 4)
     key = f"{kind}_w{window}" if kind == "lstm" else "ff"
     agg = Episodes()
-    agg.extend(load_episodes(os.path.join(odir, "data", "script_train.npz")))
+    agg.extend(load_episodes(os.path.join(odir, "data", "script_train")))
     model = train_clone(kind, agg, tier["imitation_epochs"], 0, window=window)
     rounds_out = [{"round": 0, "samples": agg.n_samples, "scores": score_policy(model, suites)}]
     for r in range(1, rounds + 1):
