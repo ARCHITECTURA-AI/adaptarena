@@ -1,0 +1,65 @@
+{
+ "familiar": {
+  "n": 10,
+  "rejected_uncertified": 0,
+  "tried": 10,
+  "random": 105.08,
+  "reactive": 395.4,
+  "memory": 500.0,
+  "planner": 500.0
+ },
+ "unseen_layout": {
+  "n": 10,
+  "rejected_uncertified": 0,
+  "tried": 10,
+  "random": 87.14,
+  "reactive": 360.9,
+  "memory": 500.0,
+  "planner": 500.0
+ },
+ "scarce_food": {
+  "n": 10,
+  "rejected_uncertified": 0,
+  "tried": 10,
+  "random": 88.88000000000001,
+  "reactive": 195.9,
+  "memory": 500.0,
+  "planner": 500.0
+ },
+ "scarce_water": {
+  "n": 10,
+  "rejected_uncertified": 0,
+  "tried": 10,
+  "random": 88.0,
+  "reactive": 182.8,
+  "memory": 467.2,
+  "planner": 500.0
+ },
+ "higher_move_cost": {
+  "n": 10,
+  "rejected_uncertified": 0,
+  "tried": 10,
+  "random": 71.26,
+  "reactive": 351.8,
+  "memory": 500.0,
+  "planner": 500.0
+ },
+ "cold_snap": {
+  "n": 10,
+  "rejected_uncertified": 0,
+  "tried": 10,
+  "random": 87.66000000000001,
+  "reactive": 238.3,
+  "memory": 471.3,
+  "planner": 500.0
+ },
+ "combined_shift": {
+  "n": 10,
+  "rejected_uncertified": 2,
+  "tried": 12,
+  "random": 70.78999999999999,
+  "reactive": 106.8,
+  "memory": 425.3,
+  "planner": 500.0
+ }
+}

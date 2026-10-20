@@ -82,6 +82,10 @@ Training reproducibility is stated as same machine and same software; evaluating
 | `adaptarena stress` / `redteam` / `probes` | stress curves, verified failures, what-it-learned probes |
 | `adaptarena site` / `report` / `export` | static site, technical report, export package |
 
+## Live site
+
+The static showcase is deployed to GitHub Pages from `site/published` by `.github/workflows/pages.yml` (repository Settings > Pages > Source: GitHub Actions). Rebuild it with `make publish` after re-running the experiments.
+
 ## Layout
 
 ```

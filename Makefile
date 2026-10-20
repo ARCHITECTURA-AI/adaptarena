@@ -2,7 +2,7 @@ PY ?= python
 TIER ?= smoke
 WORKERS ?= 4
 
-.PHONY: install test reproduce site report export lock-plan clean
+.PHONY: install test reproduce site report export lock-plan publish clean
 install:
 	$(PY) -m pip install -e ".[lab,dev]"
 
@@ -26,3 +26,8 @@ export:
 
 lock-plan:
 	adaptarena lock-plan
+
+# Rebuild the published static site from results/full and stage it for GitHub Pages (commit site/published).
+publish:
+	adaptarena site --tier full
+	rm -rf site/published && cp -r site/dist site/published
