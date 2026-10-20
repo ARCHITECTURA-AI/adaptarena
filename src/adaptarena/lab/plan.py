@@ -30,7 +30,17 @@ def file_hash(path: str) -> str:
         return hashlib.sha256(f.read()).hexdigest()
 
 
-def lock_plan(plan: str = PLAN, hash_path: str = HASH) -> str:
+PLAN_V2_1 = os.path.join(REPO, "analysis_plan_v2_1.yaml")
+HASH_V2_1 = os.path.join(REPO, "analysis_plan_v2_1.sha256")
+
+
+def hash_path_for(plan: str) -> str:
+    """analysis_plan.yaml -> analysis_plan.sha256, analysis_plan_v2_1.yaml -> analysis_plan_v2_1.sha256."""
+    return os.path.splitext(plan)[0] + ".sha256"
+
+
+def lock_plan(plan: str = PLAN, hash_path: Optional[str] = None) -> str:
+    hash_path = hash_path or hash_path_for(plan)
     h = file_hash(plan)
     with open(hash_path, "w") as f:
         f.write(h + "\n")
@@ -73,6 +83,8 @@ def verify_plan(plan: str = PLAN, hash_path: str = HASH, require_git: bool = Tru
 def log_access(log_path: str, purpose: str, info: dict) -> None:
     os.makedirs(os.path.dirname(log_path), exist_ok=True)
     rec = {"time": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), "purpose": purpose, **info}
+    head = _git("rev-parse", "HEAD")
+    rec["head_commit"] = head.strip() if head else None
     amend = []
     if os.path.exists(AMEND):
         amend = [json.loads(l) for l in open(AMEND) if l.strip()]

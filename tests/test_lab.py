@@ -99,3 +99,27 @@ def test_readme_relative_links_resolve():
         assert os.path.exists(os.path.join(planmod.REPO, path)), f"README link does not resolve: {target}"
     for needed in ("NOTICE", "LICENSE", "analysis_plan.yaml", "analysis_plan.sha256"):
         assert os.path.exists(os.path.join(planmod.REPO, needed))
+
+
+def test_harness_refuses_suite_under_wrong_plan_hash(tmp_path):
+    """The locked-suite gate: a plan that no longer matches its hash can neither open nor generate a suite."""
+    from adaptarena.lab.suites import open_locked_test_suite
+    plan_file = tmp_path / "analysis_plan_v2_1.yaml"
+    plan_file.write_text("frozen_components: {}\n")
+    h = planmod.lock_plan(str(plan_file))
+    assert (tmp_path / "analysis_plan_v2_1.sha256").read_text().strip() == h
+    (tmp_path / "suite_test_v2_1.json").write_text("{}")  # a suite already exists on disk
+    plan_file.write_text("frozen_components: {}\nedited: true\n")
+    with pytest.raises(planmod.PlanError):
+        open_locked_test_suite(str(tmp_path), "test", plan_path=str(plan_file), name="suite_test_v2_1.json")
+    assert not (tmp_path / "test_access_log.jsonl").exists()  # a refused open is not logged as an access
+
+
+def test_cli_lock_plan_accepts_a_path(tmp_path):
+    p = tmp_path / "analysis_plan_v2_1.yaml"
+    p.write_text("a: 1\n")
+    assert planmod.hash_path_for(str(p)).endswith("analysis_plan_v2_1.sha256")
+
+
+def test_repo_v2_1_plan_hash_matches_file():
+    assert planmod.file_hash(planmod.PLAN_V2_1) == open(planmod.HASH_V2_1).read().strip()

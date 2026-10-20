@@ -1,0 +1,158 @@
+# AdaptArena v2.1 analysis plan. Its SHA-256 (analysis_plan_v2_1.sha256) is committed and tagged (plan-v2.1-lock)
+# before the fresh test suite suite_test_v2_1.json is generated or opened. Deviations are dated entries in
+# plan_amendments.jsonl, never edits here. v2 (analysis_plan.yaml, its hash, its amendments, its locked suite and
+# its access log) is unchanged and its published claims stand.
+version: "2.1"
+project: AdaptArena v2.1
+environment: AdaptArena-Survival-v1        # unchanged; package version 2.1.0
+parent_plan: {file: analysis_plan.yaml, sha256: 936d3e3909573fa97ae96dce2a909c97e5aa2dae05c27cd3cfcd451b35f99dd5}
+
+questions:
+  - Whether the arm D versus arm B gap changes with training budget.
+  - Whether planner-regret scoring works once the buffer mutates scenarios (fixing repeats) and is compared with a matched value-loss control.
+  - Where the memory bottleneck sits: architecture, reinforcement learning, or memory not helping at these budgets.
+  - Whether the SSM policy trains and whether int8 post-training quantization keeps survival.
+
+tiers:
+  confirmatory: a pre-declared comparison on the fresh suite (listed under primary_comparisons only)
+  exploratory: validation suites only (suite_val.json for selection, suite_val_s1.json for scoring); no supported/not-supported status
+  diagnostic: no claim is made; the numbers explain or audit
+  rule: every result in results/full/v2_1/ and in the report carries one of these labels
+
+frozen_components:   # simulator-side hashes only; identical to the v2 plan. No simulator change happens in v2.1.
+  src/adaptarena/core/params.py: b4545de81d233ec64827eb54caf1d49d7a0e0411a6886f99d6ccfd664078bc53
+  src/adaptarena/core/distributions.py: 679914a6fcc38300e5456f96c319179efdf06ea2f78f4789f8702d986f00e864
+  src/adaptarena/core/baselines.py: deb17f890c51a595e5caec108db7fa4d4febc0c4a9eba7db1f529bf11b09c3b2
+  src/adaptarena/core/env.py: 30283e68d602207bae57ab537fcd0bd78f7b127cd7d0badd5d6b9156340188fd
+  src/adaptarena/core/scenario.py: f1cf96885a3c76fffbdb7884ab9a5c2943eee1d51cb61682a5d527aab416dbaa
+  src/adaptarena/core/planner.py: cc9f0356120be6802843350c236749657ce0d78b13aba05af6e3ad6ac3d1caaf
+frozen_scripts_version: scripts-v1
+training_code: may change under the Phase 3 parity check (flags default to v2 behavior); every run records its commit in its manifest
+
+fresh_suite:
+  file: results/full/suite_test_v2_1.json
+  conditions: [familiar, unseen_layout, scarce_food, scarce_water, higher_move_cost, cold_snap, combined_shift]
+  scenarios_per_condition: 50
+  generation_seed: 20261020          # never used before; v2 used seed 0
+  exclusion: no scenario id and no layout id shared with the v2 locked suites
+  certification: every scenario certified solvable by the reference planner; rejection counts are stored
+  retired: the v2 suite is retired for new claims because it was used for development
+  rescoring: saved checkpoints of arms A to D (10 seeds each) and the LSTM are re-scored on it so old and new arms share one yardstick
+
+arms:
+  B_2M: {source: v2 headline, seeds: 10, steps: 2000000}
+  D_2M: {source: v2 headline, seeds: 10, steps: 2000000}
+  B_8M: {seeds: [0, 1, 2], steps: 8000000, config: v2 tuned, tier: exploratory}
+  D_8M: {seeds: [0, 1, 2], steps: 8000000, config: v2 tuned, tier: exploratory}
+  B_20M: {seeds: [0, 1, 2], steps: 20000000, config: v2 tuned, tier: exploratory}
+  D_20M: {seeds: [0, 1, 2], steps: 20000000, config: v2 tuned, tier: exploratory}
+  E: {score: planner regret, buffer: replay plus mutation, seeds: 10, steps: 2000000, tier: confirmatory}
+  E_prime: {score: positive value loss, buffer: replay plus mutation, seeds: 10, steps: 2000000, tier: confirmatory}
+  F: {score: planner regret averaged over 4 rollouts, buffer: replay without mutation, seeds: 10, steps: 2000000, tier: exploratory, note: scoring rollouts count against the 2M budget}
+  shared_code: E and E_prime share every line of code except the score
+  buffer_config: {capacity: 4096, replay_probability: 0.5, prioritization: rank, temperature: 0.3, staleness: 0.3, min_fill: 256}   # v2 values
+  mutation:
+    description: after a replayed scenario is trained on, make one child with 1 to 2 random edits, certify it with the planner, score it on the next rollout, insert it only if its score beats the lowest score in the buffer; uncertified children count as rejections and the rate is reported
+    edits:
+      food_or_water_site_count: {step: 1, bounds: training distribution}
+      wall_pct: {step: 3, bounds: training distribution}
+      respawn_delay_min_and_max: {step: 5, bounds: training distribution}
+      move_cost_pct: {step: 10, bounds: training distribution}
+      cold_pct: {step: 3, bounds: training distribution}
+      timing_or_weather_seed: {op: re-roll, bounds: training seed range (below 1e9), note: "the source plan says any; restricted so a re-roll can never produce a validation or test seed"}
+      layout: {op: re-roll, probability: low, bounds: training layouts (id 0 to 9999), note: "the source plan says any; restricted so a re-roll can never produce a validation, test or stress layout"}
+    bounds_source: core/distributions.py (read only); a unit test asserts every mutated spec lies inside the training distribution so test conditions cannot leak into training
+  seeds_rule: counts fixed before any result exists; no seed is added, dropped or rerun after test results are seen; a crashed run is rerun with the same seed and logged
+
+primary_comparisons:     # the only confirmatory comparisons of v2.1
+  - {id: E_vs_B, suite: suite_test_v2_1, steps: 2000000, test: IQM difference across all seven conditions, supported_if: interval of the difference excludes zero and is positive}
+  - {id: E_vs_E_prime, suite: suite_test_v2_1, steps: 2000000, test: IQM difference across all seven conditions, supported_if: interval of the difference excludes zero and is positive}
+exploratory_comparisons_listed: [F vs B, F vs E, every budget-sweep contrast, every Phase 4 and 5b contrast]
+claim_status_rule: unchanged from v2 (supported / mixed / not supported)
+
+metric_and_statistics: unchanged from v2 (ladder-normalised survival, IQM, stratified bootstrap with 10000 resamples, 95% intervals, optimality gap, probability of improvement, performance profiles, per-seed and per-condition tables)
+rules_carried_over:
+  - saturation flag when more than 90% of a policy's episodes reach the horizon; a saturated condition is never a win
+  - unsolvable levels and scenarios are never counted against a policy
+  - no seed is added or dropped after test results are seen
+  - evaluation mode: deterministic primary, sampled secondary and never mixed
+
+outcomes_decided_in_advance:
+  E_beats_B_and_E_prime: Regret scoring plus mutation helps in this environment.
+  E_beats_B_ties_E_prime: Mutation helps and the planner adds nothing over value loss.
+  E_ties_or_loses_to_B: The v2 conclusion stands under a fairer buffer.
+  headroom_rule: If every learned arm stays below 0.5 of the ladder, the report calls the experiment learner-limited and says the arms cannot be separated at this competence.
+  logged_for_every_arm: [replay repeat fraction, distinct scenarios seen, mutation acceptance rate, uncertified rejection rate, buffer composition by parameter, planner calls, wall time]
+
+budget_sweep:       # exploratory, descriptive only; no claim is labeled supported
+  report: [per-seed points, ladder-normalised IQM by arm and budget, D minus B with a bootstrap interval, one log-axis figure of survival against training budget]
+  validation: every 25 updates at 2M, every 100 at 8M, every 250 at 20M (about the same number of evaluations per run)
+  buffer_stats_logged: [repeat fraction, distinct scenarios seen, score rank correlation]
+  outcomes_decided_in_advance:
+    both_rise_and_D_overtakes_B_at_20M: Regret helps once the learner is competent; the v2 result was budget-limited.
+    both_rise_and_interval_includes_zero: The v2 gap closes with budget; regret neither helps nor hurts.
+    B_ahead_of_D_at_every_budget: The v2 negative result is robust to budget.
+    neither_improves_from_8M_to_20M: The learner has plateaued, so the bottleneck is elsewhere (Phase 4).
+
+speed_phase:
+  parity_check: three seeds of arm B at 500000 steps, old code versus new code; mean validation curves must lie inside each other's min-max seed band at no less than 80% of evaluation points
+  stop_rule: aim for at least 1.5 times the aggregate throughput with 4 parallel workers; if the profile shows no change worth more than 1.2 times, stop and run Phase 5 at the current speed
+  every_speedup_is_a_flag: defaults stay at v2 behavior until the check passes
+
+memory_diagnostics:   # all on validation suites (suite_val.json and suite_val_s1.json); none touches the fresh test suite
+  predictions:        # drafts adopted unchanged by the author at lock time; locked before any Phase 4 run
+    - id: P1
+      prediction: A cloned LSTM matches the memory script and a cloned feedforward policy does not.
+      criterion: LSTM clone at least 0.9 of the script's ladder-normalised score, feedforward clone below 0.6.
+    - id: P2
+      prediction: A feedforward policy handed the script's map approaches the script.
+      criterion: at least 0.8 of the script's score at 2M steps, and above plain feedforward with an interval that excludes zero.
+    - id: P3
+      prediction: A longer backpropagation window helps the LSTM.
+      criterion: window 256 beats window 64 with an interval that excludes zero.
+  scoring: hit = criterion met; partial = right direction but criterion not met; miss = wrong direction
+  imitation_ceiling:
+    data: memory script rolled out on the arm B training distribution, up to about 2000 episodes (1M samples); observation, previous action and the script's action logged
+    models: [feedforward (rung 5 architecture), LSTM at windows 64 and 256]
+    dagger_lite: three rounds, only if the script builds its map from the observation stream and executed moves, not from its own chosen actions (checked in baselines.py); otherwise plain cloning only, and the report says so
+    outcome_table:
+      lstm_near_script_ff_well_below: Memory matters and the LSTM can represent it; RL optimization is the bottleneck. Run 4.2 and 4.3.
+      both_near_script: Little memory is needed here, so the RL gap is optimization or exploration. Run 4.3 on both architectures.
+      lstm_w64_well_below_w256: The backpropagation window is the limit. Use window 256 in 4.3.
+      both_well_below_script: The script's behavior is hard to learn from observations at this data size. Add DAgger rounds before drawing conclusions.
+  hand_fed_map:
+    variant: "obs-v9-map (3 extra 9x9 egocentric channels from the memory script's dead-reckoning map: remembered food sites, remembered water sites, and known floor, because this environment has no shelters); wrapper in lab/memory.py; core/baselines.py is frozen and imported, not edited"
+    training: feedforward PPO, arm B distribution, 2M steps, 5 seeds; tier exploratory
+  lstm_retune:
+    stage1: learning rate in [3e-4, 1e-3, 2e-3, 3e-3] x entropy in [0.003, 0.01], 3 seeds, 1M steps
+    stage2: window 64, 128, 256 with the best stage 1 pair, 3 seeds, 1M steps (skip any value 4.1 ruled out)
+    equal_effort_feedforward: learning rates 2e-3 and 3e-3 at entropy 0.003, 3 seeds, 1M steps
+    selection: pick by suite_val.json, re-score the winner on suite_val_s1.json, then run the winning LSTM config with 10 seeds at 2M steps; rerun feedforward with 10 seeds only if its best config changed
+  gate: a one-paragraph verdict names which of the three explanations the data supports
+
+ssm_int8_gamma:       # exploratory or diagnostic; none is a confirmatory claim
+  ssm:
+    equivalence_test: chunked scan carrying state across chunks equals step-by-step inference to 1e-5
+    width: parameter count within 10% of the LSTM's 424,519; both counts reported
+    training: best LSTM config and chunk length from Phase 4; 5 seeds at 2M steps
+    stop_rule: one tuning pass of 3 learning rates with 3 seeds at 500000 steps; if no seed beats random level by more than 20 steps, report "did not train" with the logs and stop
+    scoring: both validation suites and the fresh test suite, labeled exploratory
+    cost: inference cost on the named Xeon at batch 1 and batch 64 (recurrent state size and steps per second) for feedforward, LSTM and SSM
+  int8:
+    policies: rungs 5, 7 and 8, selected checkpoint of every available seed (at least 5)
+    method: PyTorch dynamic quantization of linear and LSTM layers; for the SSM, projection layers only with float32 recurrent state; the report states exactly which parts are int8
+    retention: int8 ladder-normalised score divided by float32 score with a bootstrap interval over seeds and conditions; absolute scores always shown next to the ratio
+    agreement: fraction of steps where the int8 policy picks the same action as float32 on validation rollouts
+    scope: no claim about edge devices; speed and energy statements limited to what was measured on the named machine
+  gamma_rerun:
+    change: normalize_returns flag in ppo.py (off by default) dividing rewards by the running standard deviation of the discounted return, per-environment accumulator reset at episode ends, with the standard clip; recorded in the run config
+    runs: gamma 0.9, 0.99, 0.999 with normalization on, 5 seeds each at 600000 steps, validation suite suite_val_s1.json only
+    outcome_table:
+      gamma_0_9_still_hurts_about_as_much: The horizon effect is real.
+      penalty_shrinks_or_vanishes: The v2 effect was partly a scale artifact; say so.
+      gamma_0_999_now_helps: The reward scale was hiding a benefit of the longer horizon.
+
+audits_done_before_this_lock:    # diagnostic, results/full/v2_1/audit/
+  - specialist check (arm A): not a bug; 0.81 on its training distribution, 0.80 on the familiar suite, 0.008 on fresh layouts; the pooled 0.010 is an IQM over seven conditions of which six are unseen layouts
+  - selection-bias audit: best_val runs high by about 13 steps on the headline runs; two v2 ablation findings (5x5 vision, time-out as death) change when scored on suite_val_s1.json
+  - access log: exactly three accesses of the v2 locked suite, each with the v2 plan hash

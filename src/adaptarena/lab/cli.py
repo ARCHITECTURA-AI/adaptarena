@@ -22,7 +22,8 @@ def main(argv=None) -> None:
     add("check-env", "run the Gymnasium environment checker", tier=False)
     add("throughput", "benchmark simulator throughput", tier=False)
     add("calibrate", "difficulty calibration on validation seeds (scripts + planner only)")
-    add("lock-plan", "hash analysis_plan.yaml (commit the result before touching the test suite)", tier=False)
+    lp = add("lock-plan", "hash a plan file (commit the result before touching the test suite)", tier=False)
+    lp.add_argument("--plan", default=None, help="path to the plan yaml (default analysis_plan.yaml)")
     add("tune", "hyper-parameter sweep (validation only)", workers=True)
     add("parity", "own PPO vs SB3 parity gate", workers=True)
     add("headline", "train the four arms and evaluate on the locked suite", workers=True)
@@ -49,7 +50,7 @@ def main(argv=None) -> None:
         tp()
     elif a.cmd == "lock-plan":
         from . import plan
-        print(plan.lock_plan())
+        print(plan.lock_plan(a.plan) if a.plan else plan.lock_plan())
     elif a.cmd == "calibrate":
         from .calibration import run
         run(a.tier)
