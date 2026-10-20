@@ -74,3 +74,42 @@ def rescore_existing(tier_name: str) -> dict:
     write_csv(os.path.join(v21_dir(tier_name, "rescore"), "episodes.csv"), rows)
     write_json(os.path.join(v21_dir(tier_name, "rescore"), "rescore.json"), out)
     return out
+
+
+def _speed_job(job: dict) -> dict:
+    import time
+    import torch
+    torch.set_num_threads(1)
+    from .models import make_model
+    from .ppo import PPOConfig, train
+    from .sources import make_source
+    from .suites import Suite
+    from .tune import tuned_ppo
+    val_specs = Suite.load(job["val_suite"]).all_specs()
+    kw = dict(total_steps=job["steps"], seed=job["seed"], profile=True)
+    kw.update(tuned_ppo(job["tier"], "ff"))
+    kw.update(job.get("flags", {}))
+    torch.manual_seed(job["seed"])
+    t0 = time.time()
+    res = train(make_model("ff"), PPOConfig(**kw), make_source("B", job["seed"]), job["env"], val_specs, job["out_dir"])
+    return {"sps": res.steps / (time.time() - t0), "wall": time.time() - t0, "profile": res.extra.get("profile_seconds"),
+            "profile_total": res.extra.get("profile_total_seconds"), "best_val": res.best_val}
+
+
+def profile_training(tier_name: str, steps: int = 100_000, parallel: int = 4) -> dict:
+    """Phase 3.1. Diagnostic: where one arm-B job spends its time, alone and with `parallel` jobs on the machine."""
+    import concurrent.futures as cf
+    import tempfile
+    from ..core.env import EnvConfig
+    tdir = tier_dir(tier_name)
+    base = dict(tier=tier_name, steps=steps, val_suite=os.path.join(tdir, "suite_val.json"), env=EnvConfig())
+
+    def mk(i):
+        return dict(base, seed=i, out_dir=tempfile.mkdtemp(prefix="speed_"))
+    single = _speed_job(mk(0))
+    with cf.ProcessPoolExecutor(parallel) as ex:
+        multi = list(ex.map(_speed_job, [mk(i) for i in range(parallel)]))
+    out = {"tier_label": "diagnostic", "steps": steps, "single": single, "parallel": parallel,
+           "parallel_jobs": multi, "parallel_sps_total": sum(m["sps"] for m in multi)}
+    write_json(os.path.join(v21_dir(tier_name, "speed"), "profile.json"), out)
+    return out

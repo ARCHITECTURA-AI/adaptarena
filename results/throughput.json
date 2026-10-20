@@ -10,5 +10,36 @@
   "batch_16_with_observations": 58426.10018537659,
   "batch_64_with_observations": 122453.87962731648,
   "batch_256_with_observations": 186942.18639195772
+ },
+ "training": {
+  "tier_label": "diagnostic",
+  "workload": "one arm-B job, 100k steps, FF policy, tuned PPO config, torch threads=1",
+  "machine": "Intel(R) Xeon(R) Processor @ 2.80GHz",
+  "single_job_steps_per_second": 1888.7,
+  "four_parallel_jobs_total_steps_per_second": 7874.2,
+  "four_parallel_per_job_steps_per_second": [
+   1989.5,
+   1941.0,
+   1984.6,
+   1959.1
+  ],
+  "time_share_single_job": {
+   "validation": 0.017,
+   "rollout_forward": 0.207,
+   "env_step": 0.057,
+   "obs_build": 0.041,
+   "gae": 0.006,
+   "update": 0.612
+  },
+  "fast_rollout_single_job_steps_per_second": 2218.5,
+  "fast_rollout_speedup": 1.175,
+  "update_step_ms_microbenchmark": {
+   "adam_default": 14.04,
+   "adam_foreach": 13.05,
+   "adam_fused": 14.32,
+   "forward_only": 4.33
+  },
+  "decision": "Stop rule (plan 3.4): no change worth more than 1.2x (best measured 1.17x, fast_rollout). No speed-up adopted; fast_rollout stays off by default. Phase 5 runs at the v2 speed.",
+  "note": "The earlier 1.1k to 2.1k steps/s range in v2 logs was not core sharing: four parallel jobs each ran at about the single-job rate."
  }
 }
