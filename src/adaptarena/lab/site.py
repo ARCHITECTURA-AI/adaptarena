@@ -258,6 +258,8 @@ def build_ledger(tier_name: str, tdir: str, plan_hash: str) -> dict:
             claims.append({"id": f"ablation:{name}", "pre_declared": False, "status": "supported" if e["lo"] > 0 or e["hi"] < 0 else "not supported",
                            "claim": f"Ablation '{name}' changes ladder-normalised survival relative to the default (exploratory, validation suite; observed: {v['finding']}).",
                            "evidence": e, "link": "ablations.json"})
+    from .readme_gen import tag_v2_claims, v21_claims
+    claims = tag_v2_claims(claims) + v21_claims(tier_name)
     amend = [json.loads(l) for l in open(planmod.AMEND)] if os.path.exists(planmod.AMEND) else []
     log_path = os.path.join(tdir, "test_access_log.jsonl")
     access = [json.loads(l) for l in open(log_path)] if os.path.exists(log_path) else []

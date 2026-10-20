@@ -154,3 +154,74 @@ def lstm_retune(tier_name: str, workers: int = 4, imitation: Optional[dict] = No
     out["ff_equal_effort"] = {"best_extra": ff_best, "best_extra_mean": s1[ff_best]["mean"], "v2_config": ff_v2}
     write_json(os.path.join(v21_dir(tier_name, "diagnose"), "lstm_retune.json"), out)
     return out
+
+
+def lstm_final(tier_name: str, workers: int = 4) -> dict:
+    """4.3 step 4: the winning LSTM config, 10 seeds at 2M, scored on both validation suites next to feedforward arm B."""
+    import json
+    tdir = tier_dir(tier_name)
+    t = load_tier(tier_name)
+    retune = json.load(open(os.path.join(v21_dir(tier_name, "diagnose"), "lstm_retune.json")))
+    cfg = dict(retune["winner"]["ppo"])
+    n = 10 if t["steps"] >= 2_000_000 else t["seeds"]
+    jobs = final_jobs(tier_name, cfg, n)
+    run_jobs(train_job, jobs, workers)
+    out = {"tier_label": "exploratory", "config": cfg, "seeds": n, "steps": t["steps"]}
+    ff_jobs = [dict(out_dir=os.path.join(tdir, "headline", "arm_B", f"seed_{s}"), model="ff", obs="v2") for s in range(t["seeds"])]
+    for name in ("suite_val.json", "suite_val_s1.json"):
+        lstm = score_group(tier_name, jobs, name)
+        ff = score_group(tier_name, ff_jobs, name)
+        out[name] = {"lstm_retuned": {"mean": mean_score(lstm), "iqm": S.iqm_with_ci(lstm), "per_seed": S.per_seed_table(lstm)},
+                     "ff_arm_B": {"mean": mean_score(ff), "iqm": S.iqm_with_ci(ff)},
+                     "lstm_minus_ff": S.iqm_difference_with_ci(lstm, ff)}
+    write_json(os.path.join(v21_dir(tier_name, "diagnose"), "lstm_final.json"), out)
+    return out
+
+
+def _grade(*conds) -> str:
+    return "hit" if all(conds) else ("partial" if any(conds) else "miss")
+
+
+def predictions(tier_name: str) -> dict:
+    """Scores P1 to P3 (analysis_plan_v2_1.yaml) against their stated criteria and names the supported explanation."""
+    import json
+    d = v21_dir(tier_name, "diagnose")
+    im = json.load(open(os.path.join(d, "imitation.json")))
+    mp = json.load(open(os.path.join(d, "mapfed.json")))
+    rt = json.load(open(os.path.join(d, "lstm_retune.json")))
+    suite = "suite_val"
+    script = im["script"][suite]["aggregate"]
+    ff = im["clones"]["ff"]["aggregate_mean"][suite] / script
+    lstm = {k: im["clones"][k]["aggregate_mean"][suite] / script for k in ("lstm_w64", "lstm_w256")}
+    best_lstm = max(lstm.values())
+    p1 = {"criterion": "LSTM clone at least 0.9 of the script, feedforward clone below 0.6",
+          "lstm_clone_fraction_of_script": lstm, "ff_clone_fraction_of_script": ff,
+          "grade": _grade(best_lstm >= 0.9, ff < 0.6)}
+    gap = mp["map_minus_plain"]
+    p2 = {"criterion": "map-fed feedforward at least 0.8 of the script's score at the full budget and above plain feedforward with an interval excluding zero",
+          "map_fraction_of_script": mp["map_fraction_of_script"], "map_minus_plain": gap,
+          "grade": _grade(mp["map_fraction_of_script"] >= 0.8, gap["lo"] > 0)}
+    w = rt.get("window256_minus_window64")
+    p3 = {"criterion": "window 256 beats window 64 with an interval excluding zero", "window256_minus_window64": w,
+          "grade": "miss" if w is None else ("hit" if w["lo"] > 0 else ("partial" if w["diff"] > 0 else "miss"))}
+    # which of the three explanations does the data support?
+    if best_lstm < 0.6 and ff < 0.6:
+        key = "data_or_architecture_limit"
+        text = ("Both clones stay well below the script, so the script's behaviour is hard to learn from observations at this data size. "
+                "That does not separate the explanations; DAgger rounds (reported alongside) are the next evidence.")
+    elif ff >= 0.9 * best_lstm and best_lstm >= 0.9:
+        key = "memory_not_needed"
+        text = ("The feedforward clone is as close to the script as the LSTM clone, so little memory is needed here and the gap to the "
+                "script is optimisation or exploration, not representation.")
+    elif best_lstm >= 0.9 and ff < 0.6:
+        key = "rl_not_finding_memory"
+        text = ("The LSTM can represent the script's memory (its clone reaches the script) and the feedforward net cannot, so memory matters "
+                "and the architecture suffices; reinforcement learning is the bottleneck."
+                + (" An explicit map closes most of the gap, which makes this a representation problem: an explicit map closes the gap and recurrence did not discover one."
+                   if p2["grade"] == "hit" else ""))
+    else:
+        key = "mixed"
+        text = ("The clones sit between the criteria, so the evidence is mixed: see the per-prediction table for which criterion failed.")
+    out = {"tier_label": "diagnostic (P1) and exploratory (P2, P3)", "P1": p1, "P2": p2, "P3": p3, "explanation": key, "verdict": text}
+    write_json(os.path.join(d, "predictions.json"), out)
+    return out

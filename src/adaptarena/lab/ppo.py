@@ -73,6 +73,24 @@ class RunningMeanStd:
         self.var, self.count = m2 / tot, tot
 
 
+class ReturnNormalizer:
+    """Divides rewards by the running std of the discounted return (the standard PPO reward scaling).
+
+    One accumulator per environment: acc = gamma * acc + r, the running variance is updated with every accumulator
+    value, and the accumulator of an environment is zeroed when its episode ends. The scaled reward is clipped.
+    """
+
+    def __init__(self, n: int, gamma: float, clip: float = 10.0):
+        self.acc, self.gamma, self.clip, self.rms = np.zeros(n), gamma, clip, RunningMeanStd()
+
+    def __call__(self, reward: np.ndarray, done: np.ndarray) -> np.ndarray:
+        self.acc = self.acc * self.gamma + reward
+        self.rms.update(self.acc)
+        out = np.clip(reward / np.sqrt(self.rms.var + 1e-8), -self.clip, self.clip)
+        self.acc = self.acc * (1.0 - done)
+        return out
+
+
 class _Timer:
     """Wall-time accumulators per loop phase; a no-op unless `profile` is on."""
 
@@ -211,7 +229,7 @@ def train(model: nn.Module, cfg: PPOConfig, source: ScenarioSource, env_config: 
     state = model.initial_state(n)
     first = torch.ones(n)
     obs = torch.from_numpy(env.flat_obs())
-    ret_rms, ret_acc = RunningMeanStd(), np.zeros(n)
+    ret_norm = ReturnNormalizer(n, cfg.gamma, cfg.return_clip)
 
     rows_f = open(os.path.join(out_dir, "train_log.csv"), "w", newline="")
     val_f = open(os.path.join(out_dir, "val_log.csv"), "w", newline="")
@@ -266,10 +284,7 @@ def train(model: nn.Module, cfg: PPOConfig, source: ScenarioSource, env_config: 
             reward = torch.from_numpy(reward) * cfg.reward_scale
             done_np = term | trunc
             if cfg.normalize_returns:
-                ret_acc = ret_acc * cfg.gamma + reward.numpy()
-                ret_rms.update(ret_acc)
-                reward = torch.clamp(reward / float(np.sqrt(ret_rms.var + 1e-8)), -cfg.return_clip, cfg.return_clip)
-                ret_acc = ret_acc * (1.0 - done_np)
+                reward = torch.from_numpy(ret_norm(reward.numpy().astype(np.float64), done_np.astype(np.float64))).float()
             if trunc.any() and cfg.bootstrap_timeout:
                 with torch.no_grad():
                     with tm("obs_build"):

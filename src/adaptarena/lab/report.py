@@ -487,6 +487,10 @@ def build(tier_name: str) -> str:
     except Exception as e:  # pragma: no cover
         print("PDF skipped:", e)
     print("report written to", rdir)
+    if tier_name == "full":  # the README shows the published tier; its results block is generated, never typed
+        from .readme_gen import write_readme
+        write_readme(tier_name)
+        print("README results block regenerated")
     return path
 
 

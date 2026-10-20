@@ -113,3 +113,67 @@ def profile_training(tier_name: str, steps: int = 100_000, parallel: int = 4) ->
            "parallel_jobs": multi, "parallel_sps_total": sum(m["sps"] for m in multi)}
     write_json(os.path.join(v21_dir(tier_name, "speed"), "profile.json"), out)
     return out
+
+
+STAGES = ("audit", "suite", "rescore", "profile", "imitation", "mapfed", "lstm-retune", "lstm-final", "predictions",
+          "mutation", "sweep", "ssm", "int8", "gamma")
+
+
+def _int8_groups(tier_name: str) -> dict:
+    tdir = tier_dir(tier_name)
+    t = load_tier(tier_name)
+    groups = {"ppo_ff": {"kind": "ff", "dirs": [os.path.join(tdir, "headline", "arm_B", f"seed_{s}") for s in range(t["seeds"])]}}
+    final = os.path.join(v21_dir(tier_name, "diagnose"), "lstm_final")
+    lstm_dirs = sorted(os.path.join(final, d) for d in os.listdir(final)) if os.path.isdir(final) else []
+    if not lstm_dirs:
+        lstm_dirs = [os.path.join(tdir, "memory", "lstm", "default", f"seed_{s}") for s in range(t["memory_seeds"])]
+    groups["ppo_lstm"] = {"kind": "lstm", "dirs": [d for d in lstm_dirs if os.path.exists(os.path.join(d, "model_best.pt"))]}
+    ssm = os.path.join(v21_dir(tier_name, "ssm_int8"), "ssm", "final")
+    ssm_dirs = sorted(os.path.join(ssm, d) for d in os.listdir(ssm)) if os.path.isdir(ssm) else []
+    groups["ppo_ssm"] = {"kind": "ssm", "dirs": [d for d in ssm_dirs if os.path.exists(os.path.join(d, "model_best.pt"))]}
+    return {k: v for k, v in groups.items() if v["dirs"]}
+
+
+def run_stage(stage: str, tier_name: str, workers: int = 4):
+    """One v2.1 stage. Every stage is resumable and writes under results/<tier>/v2_1/<stage>/ with a tier label."""
+    if stage == "audit":
+        from . import audit
+        return audit.run(tier_name)
+    if stage == "suite":
+        return generate_suite(tier_name)
+    if stage == "rescore":
+        return rescore_existing(tier_name)
+    if stage == "profile":
+        return profile_training(tier_name)
+    if stage == "imitation":
+        from . import imitation
+        return imitation.run(tier_name, workers)
+    if stage == "mapfed":
+        from . import phase4
+        return phase4.mapfed(tier_name, workers)
+    if stage == "lstm-retune":
+        from . import phase4
+        im = os.path.join(v21_dir(tier_name, "diagnose"), "imitation.json")
+        return phase4.lstm_retune(tier_name, workers, json.load(open(im)) if os.path.exists(im) else None)
+    if stage == "lstm-final":
+        from . import phase4
+        return phase4.lstm_final(tier_name, workers)
+    if stage == "predictions":
+        from . import phase4
+        return phase4.predictions(tier_name)
+    if stage == "mutation":
+        from . import phase5
+        return phase5.run(tier_name, workers, which=("mutation",))
+    if stage == "sweep":
+        from . import phase5
+        return phase5.run(tier_name, workers, which=("sweep",))
+    if stage == "ssm":
+        from . import phase5b
+        return phase5b.ssm_run(tier_name, workers)
+    if stage == "int8":
+        from . import phase5b
+        return phase5b.int8_run(tier_name, _int8_groups(tier_name))
+    if stage == "gamma":
+        from . import phase5b
+        return phase5b.gamma_run(tier_name, workers)
+    raise ValueError(stage)

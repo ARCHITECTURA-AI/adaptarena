@@ -37,6 +37,9 @@ def main(argv=None) -> None:
     add("site", "build the static showcase site from results")
     add("report", "build the technical report from results")
     add("reproduce", "run every stage for a tier", workers=True)
+    v = add("v21", "one AdaptArena v2.1 stage (analysis_plan_v2_1.yaml)", workers=True)
+    from .v2_1 import STAGES
+    v.add_argument("stage", choices=list(STAGES))
     a = p.parse_args(argv)
 
     if a.cmd == "check-env":
@@ -92,6 +95,9 @@ def main(argv=None) -> None:
     elif a.cmd == "report":
         from .report import build
         build(a.tier)
+    elif a.cmd == "v21":
+        from .v2_1 import run_stage
+        run_stage(a.stage, a.tier, a.workers)
     elif a.cmd == "reproduce":
         from .reproduce import run
         run(a.tier, a.workers)

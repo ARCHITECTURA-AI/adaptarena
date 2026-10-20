@@ -124,7 +124,7 @@ class SSMPolicy(nn.Module):
     recurrent = True
     name = "ppo_ssm"
 
-    def __init__(self, d_model=192, d_state=16, expand=2, d_conv=4, obs_dim=OBS_DIM):
+    def __init__(self, d_model=208, d_state=16, expand=2, d_conv=4, obs_dim=OBS_DIM):  # 208: within 10% of the LSTM's parameter count
         super().__init__()
         self.d_model, self.d_state, self.d_conv = d_model, d_state, d_conv
         self.d_inner = d_model * expand

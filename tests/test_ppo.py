@@ -115,6 +115,81 @@ def test_hidden_state_resets_at_episode_boundary(cls):
 def test_param_counts_comparable():
     ff, lstm, ssm = count_params(FFPolicy()), count_params(LSTMPolicy()), count_params(SSMPolicy())
     assert 0.8 < lstm / ff < 1.25 and 0.7 < ssm / ff < 1.25, (ff, lstm, ssm)
+    assert abs(ssm / lstm - 1) <= 0.10, (lstm, ssm)  # v2.1 plan 5b.1: SSM within 10% of the LSTM
+
+
+@pytest.mark.parametrize("cls", [LSTMPolicy, SSMPolicy])
+def test_chunked_scan_carrying_state_matches_step_by_step(cls):
+    """Training runs in chunks with the state carried across chunk boundaries; it must equal one step-by-step pass."""
+    torch.manual_seed(3)
+    m = cls()
+    T, n, C = 20, 3, 7
+    obs = torch.rand(T, n, P.OBS_DIM)
+    first = torch.zeros(T, n)
+    first[0] = 1
+    first[11, 1] = 1  # a boundary inside a chunk
+    first[14, 2] = 1  # a boundary exactly at a chunk start
+    s = m.initial_state(n)
+    ref_l, ref_v = [], []
+    for t in range(T):
+        l, v, s = m.step(obs[t], s, first[t])
+        ref_l.append(l)
+        ref_v.append(v)
+    ref_l, ref_v = torch.stack(ref_l), torch.stack(ref_v)
+    s = m.initial_state(n)
+    ls, vs = [], []
+    for lo in range(0, T, C):
+        l, v, s = m.sequence(obs[lo:lo + C], s, first[lo:lo + C])
+        ls.append(l)
+        vs.append(v)
+    assert torch.allclose(torch.cat(ls), ref_l, atol=1e-5) and torch.allclose(torch.cat(vs), ref_v, atol=1e-5)
+
+
+def test_running_mean_std_matches_numpy():
+    from adaptarena.lab.ppo import RunningMeanStd
+    rng = np.random.default_rng(0)
+    rms, chunks = RunningMeanStd(), [rng.normal(3.0, 2.0, size=int(k)) for k in rng.integers(1, 40, size=30)]
+    for c in chunks:
+        rms.update(c)
+    allv = np.concatenate(chunks)
+    assert abs(rms.mean - allv.mean()) < 1e-3 and abs(rms.var - allv.var()) < 1e-3  # 1e-4 initial pseudo-count only
+
+
+def test_return_normalizer_resets_at_episode_ends_and_clips():
+    from adaptarena.lab.ppo import ReturnNormalizer
+    g = 0.9
+    nz = ReturnNormalizer(2, g, clip=5.0)
+    # env 0 runs three steps of reward 1 and ends on the third; env 1 never ends
+    refs = [np.zeros(2)]
+    acc = np.zeros(2)
+    for step in range(5):
+        r = np.array([1.0, 1.0])
+        done = np.array([1.0 if step == 2 else 0.0, 0.0])
+        nz(r, done)
+        acc = acc * g + r                    # what the accumulator held when the variance was updated
+        refs.append(acc.copy())
+        acc = acc * (1 - done)               # then env 0 is reset at the episode boundary
+        assert np.allclose(nz.acc, acc)
+    assert nz.acc[0] == pytest.approx(1.0 + g, abs=1e-12)  # restarted from zero after step 2, then two more steps
+    assert nz.acc[1] == pytest.approx(sum(g ** k for k in range(5)), abs=1e-12)  # env 1 never reset
+    # clip bound holds for a huge reward
+    assert np.abs(nz(np.array([1e9, -1e9]), np.zeros(2))).max() <= 5.0 + 1e-9
+    # the running variance equals NumPy's over every accumulator value it was shown
+    nz2 = ReturnNormalizer(1, g)
+    seen, a = [], 0.0
+    for r in np.random.default_rng(1).normal(size=200):
+        nz2(np.array([r]), np.zeros(1))
+        a = a * g + r
+        seen.append(a)
+    assert abs(nz2.rms.var - np.var(seen)) < 1e-3
+
+
+def test_normalize_returns_is_off_by_default_and_trains(tmp_path):
+    assert PPOConfig().normalize_returns is False
+    cfg = PPOConfig(total_steps=4096, seed=0, normalize_returns=True, eval_every=1000)
+    spec = sample_train(np.random.default_rng(0))
+    res = train(FFPolicy(), cfg, SamplerSource(lambda rng: spec, 0), EnvConfig(), [spec], str(tmp_path))
+    assert np.isfinite(res.best_val)
 
 
 def _tiny_source(spec_fn):
