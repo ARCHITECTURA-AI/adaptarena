@@ -89,7 +89,8 @@ PAGES = {
 
 
 def _page(name: str, page: str, title: str, lede: str, extra: str, meta: dict) -> str:
-    nav = "".join(f'<a href="{h}"{" aria-current=\"page\"" if h == name else ""}>{t}</a> ' for h, t in NAV)
+    cur = ' aria-current="page"'
+    nav = "".join(f'<a href="{h}"{cur if h == name else ""}>{t}</a> ' for h, t in NAV)
     return f"""<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>AdaptArena v2 · {title}</title>
