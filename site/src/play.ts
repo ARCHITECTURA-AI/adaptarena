@@ -61,12 +61,17 @@ export async function initPlay(root: HTMLElement): Promise<void> {
   try { rm.checked = localStorage.getItem("aa-reduced-motion") === "1"; } catch { /* ignore */ }
   rm.onchange = () => { try { localStorage.setItem("aa-reduced-motion", rm.checked ? "1" : "0"); } catch { /* ignore */ } };
   const controls = el("div", { class: "controls" }, el("label", {}, "Challenge ", sel), el("label", {}, rm, " Reduced motion"));
-  const game = el("div", { class: "game", tabindex: "0", role: "application", "aria-label": "AdaptArena game. Arrow keys or WASD move, E or Space interact, X waits." });
+  const game = el("div", { class: "game glass", tabindex: "0", role: "application", "aria-label": "AdaptArena game. Arrow keys or WASD move, E or Space interact, X waits." });
+  const stage = el("div", { class: "stage" });
   const canvas = el("canvas", { role: "img", "aria-label": "Your view" });
+  stage.append(canvas, el("div", { class: "stage-cap" }, "Your view · 9×9 fog of war"));
   const hud = el("div", { class: "hud" });
-  const help = el("p", { class: "note" }, "Fog of war: you see exactly what the policies see — a 9×9 window around you. Arrows/WASD move · E or Space drink or eat on a ready site · X wait. Water = circle W, food = triangle F, wall = hatch. Each key press is one environment step; the episode ends at step 500 or when you die.");
-  game.append(canvas, hud);
-  root.append(controls, help, game);
+  const keys = el("div", { class: "keys", "aria-hidden": "true" });
+  const kb = (k: string, d: string): HTMLElement => el("span", { class: "key" }, el("kbd", {}, k), d);
+  keys.append(kb("W A S D", "move"), kb("E", "drink / eat"), kb("X", "wait"));
+  game.append(stage, el("div", { class: "side" }, hud, keys));
+  const help = el("p", { class: "note" }, "You see exactly what the policies see. Water is a circle marked W, food a triangle marked F, walls are hatched. Each key press is one environment step; the episode ends at step 500 or when you die.");
+  root.append(controls, game, help);
   const result = el("div", { class: "result", "aria-live": "polite" });
   root.append(result);
 
@@ -103,21 +108,32 @@ export async function initPlay(root: HTMLElement): Promise<void> {
   let actions: number[] = [];
   let frame: Frame;
   let challenge: Challenge = ladder.challenges[0];
+  const ring = (name: string, v: number, icon: string): HTMLElement => {
+    const pct = Math.round(v * 100);
+    const cls = v < 0.25 ? "crit" : v < 0.5 ? "warn" : "ok";
+    const C = 2 * Math.PI * 34;
+    const wrap = el("div", { class: `ring ${cls}`, role: "progressbar", "aria-label": name, "aria-valuemin": "0", "aria-valuemax": "100", "aria-valuenow": String(pct) });
+    wrap.innerHTML = `<svg viewBox="0 0 80 80" aria-hidden="true"><circle class="trk" cx="40" cy="40" r="34"/><circle class="val" cx="40" cy="40" r="34" stroke-dasharray="${C.toFixed(1)}" stroke-dashoffset="${(C * (1 - v)).toFixed(1)}" transform="rotate(-90 40 40)"/></svg><div class="ring-in"><span class="ring-ic">${icon}</span><b>${pct}</b></div><div class="ring-nm">${name}</div>`;
+    return wrap;
+  };
   const render = (): void => {
-    drawCodes(canvas, frame.cells, !frame.alive, frame.cold === 1);
+    drawCodes(canvas, frame.cells, !frame.alive, frame.cold === 1, 44, frame.cause);
     hud.innerHTML = "";
-    const row = (name: string, v: number): HTMLElement => {
-      const track = el("div", { class: "bar-track", role: "progressbar", "aria-label": name, "aria-valuemin": "0", "aria-valuemax": "100", "aria-valuenow": String(Math.round(v * 100)) });
-      const fill = el("div", { class: "bar-fill" });
-      fill.style.width = `${Math.round(v * 100)}%`;
-      track.append(fill);
-      return el("div", { class: "bar-row" }, el("span", { class: "bar-name" }, name), track, el("span", { class: "bar-num" }, String(Math.round(v * 100))));
-    };
-    hud.append(row("Energy", Math.max(0, frame.energy) / STAT_MAX), row("Hydration", Math.max(0, frame.hyd) / STAT_MAX));
-    hud.append(el("div", { class: "hud-line" }, `Step ${frame.t} / 500 · ${frame.cold ? "COLD weather: energy drains faster" : "temperate"}${actions.length && !frame.valid ? " · last action had no effect" : ""}`));
+    hud.append(el("div", { class: "rings" }, ring("Energy", Math.max(0, frame.energy) / STAT_MAX, "⚡"), ring("Hydration", Math.max(0, frame.hyd) / STAT_MAX, "💧")));
+    const prog = el("div", { class: "prog", role: "progressbar", "aria-label": "Episode progress", "aria-valuemin": "0", "aria-valuemax": "500", "aria-valuenow": String(frame.t) });
+    const pf = el("div", { class: "prog-fill" });
+    pf.style.width = `${(frame.t / 500) * 100}%`;
+    prog.append(pf);
+    hud.append(el("div", { class: "stepline" }, el("span", { class: "big" }, String(frame.t)), el("span", { class: "of" }, " / 500 steps")), prog);
+    hud.append(el("div", { class: "chips" },
+      el("span", { class: `chip ${frame.cold ? "cold" : ""}` }, frame.cold ? "❄ COLD: energy drains faster" : "temperate"),
+      ...(actions.length && !frame.valid ? [el("span", { class: "chip warn" }, "last action had no effect")] : [])));
     const b = readBest(challenge.id);
     hud.append(el("div", { class: "hud-line" }, b === null ? "No personal best yet on this challenge." : `Your best here: ${b} steps.`));
   };
+  // keep the glows pulsing while the page is visible
+  const loop = (): void => { if (frame && !document.hidden && !reducedMotion()) drawCodes(canvas, frame.cells, !frame.alive, frame.cold === 1, 44, frame.cause); setTimeout(() => requestAnimationFrame(loop), 50); };
+  requestAnimationFrame(loop);
   const start = (): void => {
     challenge = ladder.challenges.find((c) => c.id === sel.value)!;
     actions = [];
@@ -139,14 +155,23 @@ export async function initPlay(root: HTMLElement): Promise<void> {
     rows.sort((a, b) => b.v - a.v);
     const rank = 1 + rows.filter((r) => r.v > you).length;
     result.innerHTML = "";
-    result.append(el("h3", {}, frame.alive ? `You survived all 500 steps.` : `You died of ${frame.cause} after ${you} steps.`),
+    result.append(el("h3", { class: "verdict" }, frame.alive ? `You survived all 500 steps.` : `You died of ${frame.cause} after ${you} steps.`),
       el("p", {}, `Ranked #${rank} of ${rows.length} on the ladder for this scenario. Policy numbers are their precomputed survival on exactly this scenario; learned policies are medians over training seeds.`));
-    const t = el("table", { class: "metric-strip" }, el("tr", {}, el("th", {}, "Rank"), el("th", {}, "Policy"), el("th", {}, "Steps survived")));
-    rows.forEach((r, i) => t.append(el("tr", { class: r.you ? "you" : "" }, el("td", {}, String(i + 1)), el("td", {}, r.name), el("td", {}, r.v.toFixed(r.v % 1 ? 1 : 0)))));
-    result.append(t);
+    const bars = el("div", { class: "ladder-bars", role: "list" });
+    rows.forEach((r, i) => {
+      const row = el("div", { class: `lrow${r.you ? " you" : ""}`, role: "listitem" }, el("span", { class: "lrank" }, String(i + 1)), el("span", { class: "lname" }, r.name));
+      const track = el("div", { class: "ltrack" });
+      const fill = el("div", { class: "lfill" });
+      fill.style.setProperty("--w", `${Math.min(100, (r.v / 500) * 100)}%`);
+      fill.style.animationDelay = `${i * 70}ms`;
+      track.append(fill);
+      row.append(track, el("span", { class: "lval" }, r.v.toFixed(r.v % 1 ? 1 : 0)));
+      bars.append(row);
+    });
+    result.append(bars);
     const best = rows.filter((r) => !r.you && r.v < you).length;
     if (rows.some((r) => !r.you && r.v > you && /baseline|script|random/i.test(r.name))) result.append(el("p", { class: "note" }, "Honesty rule: when a baseline beats a learned policy, this page shows it. Nothing is hidden or rounded."));
-    const reveal = el("button", { type: "button", class: "btn" }, "Reveal the full map and replay my run (observer view)");
+    const reveal = el("button", { type: "button", class: "btn primary" }, "Reveal the full map and replay my run (observer view)");
     reveal.onclick = () => {
       const rep: Replay = JSON.parse(py.globals.get("observer_replay")(JSON.stringify(actions)));
       const host = el("div", { class: "arena-grid one" });

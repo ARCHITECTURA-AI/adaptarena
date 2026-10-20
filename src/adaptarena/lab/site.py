@@ -88,21 +88,39 @@ PAGES = {
 }
 
 
+def _hero(meta: dict) -> str:
+    h = meta.get("hero")
+    if not h:
+        return ""
+    return f"""<section class="hero reveal">
+<span class="eyebrow"><i></i> Live simulator · runs in your browser</span>
+<h1>Can you survive what the <span class="grad">agents</span> couldn't?</h1>
+<p class="lede">A 15×15 world, a 9×9 window of fog, 500 steps. Play the exact environment that trains the agents, then see where you rank against a random walker, a scripted forager, trained PPO policies and a planner that sees everything.</p>
+<div class="stats">
+<div class="stat s1"><b data-to="{h['random']:.0f}">0</b><span>steps: the average life of a random agent</span></div>
+<div class="stat s2"><b data-to="{h['planner']:.0f}">0</b><span>steps survived by the full-information planner, on every certified scenario</span></div>
+<div class="stat s3"><b data-to="{h['best']:.3f}" data-dec="3">0</b><span>ladder score of the best learned arm (random = 0, planner = 1). Planner-regret curriculum lost to uniform sampling.</span></div>
+</div></section>"""
+
+
 def _page(name: str, page: str, title: str, lede: str, extra: str, meta: dict) -> str:
     cur = ' aria-current="page"'
     nav = "".join(f'<a href="{h}"{cur if h == name else ""}>{t}</a> ' for h, t in NAV)
+    hero = _hero(meta) if page == "play" else ""
+    head = "" if page == "play" else f'<div class="reveal"><h1>{title}</h1><p class="lede">{lede}</p></div>'
     return f"""<!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<html lang="en" data-theme="dark"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>AdaptArena v2 · {title}</title>
 <meta name="description" content="{lede}">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 16 16%27%3E%3Ccircle cx=%278%27 cy=%278%27 r=%277%27 fill=%27%230b5cad%27/%3E%3C/svg%3E">
-<link rel="stylesheet" href="assets/style.css"></head>
+<meta name="theme-color" content="#070a12">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 16 16%27%3E%3Ccircle cx=%278%27 cy=%278%27 r=%277%27 fill=%27%235db4ff%27/%3E%3C/svg%3E">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{{var t=localStorage.getItem("aa-theme");if(t)document.documentElement.setAttribute("data-theme",t)}}catch(e){{}}</script></head>
 <body data-page="{page}">
-<a class="skip" href="#app" style="position:absolute;left:-999px">Skip to content</a>
-<header class="site"><div class="in"><span class="brand">AdaptArena v2</span><nav aria-label="Main">{nav}</nav></div></header>
+<a class="skip" href="#app">Skip to content</a>
+<header class="site"><div class="in"><a class="brand" href="index.html"><span class="logo" aria-hidden="true">A</span><span>AdaptArena v2<small>survival lab</small></span></a><nav aria-label="Main">{nav}</nav><button id="theme-toggle" type="button" aria-label="Switch to light theme">&#9728;</button></div></header>
 <main>
-<h1>{title}</h1>
-<p class="lede">{lede}</p>
+{hero}{head}
 {extra}
 <div id="app"><noscript>This page needs JavaScript. All data is static files in <code>data/</code>.</noscript></div>
 </main>
@@ -141,6 +159,13 @@ def build(tier_name: str, out: str = None) -> str:
     scripts = ["random", "reactive_script", "memory_script"]
     plan_hash = open(planmod.HASH).read().strip() if os.path.exists(planmod.HASH) else "unlocked"
     meta = {"tier": tier_name, "plan_hash": plan_hash}
+    try:
+        hl = json.load(open(os.path.join(tdir, "headline", "stats.json")))
+        cal = json.load(open(os.path.join(tdir, "calibration.json")))
+        meta["hero"] = {"random": float(np.mean([v["random"] for v in cal.values()])), "planner": 500.0,
+                        "best": max(v["aggregate_iqm"]["iqm"] for v in hl["per_arm"].values())}
+    except (OSError, KeyError, ValueError):
+        pass
 
     # ---- challenge scenarios (validation split, never the locked suite)
     picks = [("familiar", 1), ("familiar", 2), ("unseen_layout", 1), ("scarce_water", 1), ("higher_move_cost", 1), ("combined_shift", 1)]
