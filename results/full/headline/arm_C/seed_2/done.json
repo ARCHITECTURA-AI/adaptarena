@@ -1,0 +1,17 @@
+{
+ "wall": 1060.201372385025,
+ "job": {
+  "out_dir": "/home/user/adaptarena/results/full/headline/arm_C/seed_2",
+  "arm": "C",
+  "model": "ff",
+  "seed": 2,
+  "steps": 2000000,
+  "ppo": {
+   "lr": 0.001,
+   "ent_coef": 0.003
+  },
+  "val_suite": "/home/user/adaptarena/results/full/suite_val.json"
+ },
+ "best_val": 264.54285714285714,
+ "best_update": 900
+}

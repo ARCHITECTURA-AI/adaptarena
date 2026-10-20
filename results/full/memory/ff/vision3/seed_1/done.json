@@ -1,0 +1,20 @@
+{
+ "wall": 507.91458654403687,
+ "job": {
+  "out_dir": "/home/user/adaptarena/results/full/memory/ff/vision3/seed_1",
+  "arm": "B",
+  "model": "ff",
+  "seed": 1,
+  "steps": 1000000,
+  "env": {
+   "vision": 3
+  },
+  "ppo": {
+   "lr": 0.001,
+   "ent_coef": 0.003
+  },
+  "val_suite": "/home/user/adaptarena/results/full/suite_val.json"
+ },
+ "best_val": 147.42857142857142,
+ "best_update": 475
+}

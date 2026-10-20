@@ -1,0 +1,38 @@
+{
+ "out_dir": "/home/user/adaptarena/results/full/ablations/no_prev_action/seed_4",
+ "best_val": 134.27142857142857,
+ "best_update": 292,
+ "final_val": 134.27142857142857,
+ "steps": 598016,
+ "wall_seconds": 286.7992444038391,
+ "sps": 2085.1379899660396,
+ "extra": {},
+ "config": {
+  "total_steps": 600000,
+  "n_envs": 8,
+  "n_steps": 256,
+  "epochs": 10,
+  "n_minibatches": 4,
+  "seq_len": 64,
+  "lr": 0.001,
+  "gamma": 0.99,
+  "gae_lambda": 0.95,
+  "clip": 0.2,
+  "ent_coef": 0.003,
+  "vf_coef": 0.5,
+  "max_grad_norm": 0.5,
+  "anneal_lr": true,
+  "bootstrap_timeout": true,
+  "reward_scale": 0.01,
+  "seed": 4,
+  "eval_every": 25,
+  "save_fracs": [
+   0.0,
+   0.1,
+   0.5,
+   1.0
+  ]
+ },
+ "model": "ppo_ff",
+ "n_params": 404615
+}

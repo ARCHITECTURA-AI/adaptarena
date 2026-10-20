@@ -1,0 +1,38 @@
+{
+ "out_dir": "/home/user/adaptarena/results/full/parity/own/seed_7",
+ "best_val": 241.52857142857144,
+ "best_update": 400,
+ "final_val": 197.52857142857144,
+ "steps": 999424,
+ "wall_seconds": 582.874103307724,
+ "sps": 1714.6481449912035,
+ "extra": {},
+ "config": {
+  "total_steps": 1000000,
+  "n_envs": 8,
+  "n_steps": 256,
+  "epochs": 10,
+  "n_minibatches": 4,
+  "seq_len": 64,
+  "lr": 0.0003,
+  "gamma": 0.99,
+  "gae_lambda": 0.95,
+  "clip": 0.2,
+  "ent_coef": 0.01,
+  "vf_coef": 0.5,
+  "max_grad_norm": 0.5,
+  "anneal_lr": true,
+  "bootstrap_timeout": true,
+  "reward_scale": 0.01,
+  "seed": 7,
+  "eval_every": 25,
+  "save_fracs": [
+   0.0,
+   0.1,
+   0.5,
+   1.0
+  ]
+ },
+ "model": "ppo_ff",
+ "n_params": 404615
+}

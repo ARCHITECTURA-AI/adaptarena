@@ -1,0 +1,13 @@
+{
+ "wall": 585.3853714466095,
+ "job": {
+  "out_dir": "/home/user/adaptarena/results/full/parity/own/seed_3",
+  "arm": "B",
+  "model": "ff",
+  "seed": 3,
+  "steps": 1000000,
+  "val_suite": "/home/user/adaptarena/results/full/suite_val.json"
+ },
+ "best_val": 243.37142857142857,
+ "best_update": 475
+}

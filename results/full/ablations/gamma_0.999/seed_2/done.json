@@ -1,0 +1,19 @@
+{
+ "wall": 297.3920874595642,
+ "job": {
+  "out_dir": "/home/user/adaptarena/results/full/ablations/gamma_0.999/seed_2",
+  "arm": "B",
+  "model": "ff",
+  "seed": 2,
+  "steps": 600000,
+  "env": {},
+  "ppo": {
+   "lr": 0.001,
+   "ent_coef": 0.003,
+   "gamma": 0.999
+  },
+  "val_suite": "/home/user/adaptarena/results/full/suite_val.json"
+ },
+ "best_val": 204.4142857142857,
+ "best_update": 292
+}

@@ -1,0 +1,10 @@
+# Model card: ppo_ff_armC_seed0
+
+- **Policy**: ppo_ff (404,615 parameters), own PPO implementation, rung 5 of the ladder.
+- **Training**: arm C (Replay by value loss), seed 0, 1,998,848 transitions, checkpoint = highest mean validation survival (update 925).
+- **Weights**: `model.pt` (PyTorch `state_dict`), SHA-256 `afe8cf37c25e9fdbde0b634e86058b34897b23ed09ab762d50d59ab073bf54e4`.
+- **Environment**: `AdaptArena-Survival-v1`, observation obs-v9.
+- **Intended use**: reproducing the published benchmark and exploring the site's probes. Frozen policy: it does not learn at inference time.
+- **Result on the locked test suite**: ladder-normalised aggregate IQM for this arm 0.337 [0.324, 0.351].
+- **Limitations**: trained and evaluated on one small custom environment; behaviour outside the stated distributions is not characterised; probes show behaviour, not reasoning.
+- **Config hash**: `ce77e6b640217c28`; analysis plan `936d3e3909573fa9`.

@@ -1,0 +1,10 @@
+# Model card: ppo_lstm_seed0
+
+- **Policy**: ppo_lstm (424,519 parameters), own PPO implementation, rung 7 of the ladder.
+- **Training**: arm B (Uniform randomization), seed 0, 1,998,848 transitions, checkpoint = highest mean validation survival (update 800).
+- **Weights**: `model.pt` (PyTorch `state_dict`), SHA-256 `530ea298173c22dac7767f31aa653c1cbf4a83d1a617c0baba5b5127a529083c`.
+- **Environment**: `AdaptArena-Survival-v1`, observation obs-v9.
+- **Intended use**: reproducing the published benchmark and exploring the site's probes. Frozen policy: it does not learn at inference time.
+- **Result on the locked test suite**: ladder-normalised aggregate IQM for this arm n/a.
+- **Limitations**: trained and evaluated on one small custom environment; behaviour outside the stated distributions is not characterised; probes show behaviour, not reasoning.
+- **Config hash**: `1ad272242fd6c220`; analysis plan `936d3e3909573fa9`.

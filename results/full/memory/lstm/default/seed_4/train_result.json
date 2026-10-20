@@ -1,0 +1,38 @@
+{
+ "out_dir": "/home/user/adaptarena/results/full/memory/lstm/default/seed_4",
+ "best_val": 136.94285714285715,
+ "best_update": 775,
+ "final_val": 132.94285714285715,
+ "steps": 1998848,
+ "wall_seconds": 2020.9001405239105,
+ "sps": 989.0879613090661,
+ "extra": {},
+ "config": {
+  "total_steps": 2000000,
+  "n_envs": 8,
+  "n_steps": 256,
+  "epochs": 10,
+  "n_minibatches": 2,
+  "seq_len": 64,
+  "lr": 0.001,
+  "gamma": 0.99,
+  "gae_lambda": 0.95,
+  "clip": 0.2,
+  "ent_coef": 0.003,
+  "vf_coef": 0.5,
+  "max_grad_norm": 0.5,
+  "anneal_lr": true,
+  "bootstrap_timeout": true,
+  "reward_scale": 0.01,
+  "seed": 4,
+  "eval_every": 25,
+  "save_fracs": [
+   0.0,
+   0.1,
+   0.5,
+   1.0
+  ]
+ },
+ "model": "ppo_lstm",
+ "n_params": 424519
+}

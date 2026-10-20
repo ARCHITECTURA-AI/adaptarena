@@ -1,0 +1,20 @@
+{
+ "wall": 499.94948744773865,
+ "job": {
+  "out_dir": "/home/user/adaptarena/results/full/memory/ff/nocost/seed_0",
+  "arm": "B",
+  "model": "ff",
+  "seed": 0,
+  "steps": 1000000,
+  "env": {
+   "cost_stat": false
+  },
+  "ppo": {
+   "lr": 0.001,
+   "ent_coef": 0.003
+  },
+  "val_suite": "/home/user/adaptarena/results/full/suite_val.json"
+ },
+ "best_val": 198.25714285714287,
+ "best_update": 350
+}

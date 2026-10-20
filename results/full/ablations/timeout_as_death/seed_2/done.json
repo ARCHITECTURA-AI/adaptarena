@@ -1,0 +1,19 @@
+{
+ "wall": 298.2606544494629,
+ "job": {
+  "out_dir": "/home/user/adaptarena/results/full/ablations/timeout_as_death/seed_2",
+  "arm": "B",
+  "model": "ff",
+  "seed": 2,
+  "steps": 600000,
+  "env": {},
+  "ppo": {
+   "lr": 0.001,
+   "ent_coef": 0.003,
+   "bootstrap_timeout": false
+  },
+  "val_suite": "/home/user/adaptarena/results/full/suite_val.json"
+ },
+ "best_val": 155.81428571428572,
+ "best_update": 225
+}

@@ -1,0 +1,17 @@
+{
+ "wall": 354.5995171070099,
+ "job": {
+  "out_dir": "/home/user/adaptarena/results/full/tune/ff/lr0.001_ent0.003/seed_2",
+  "arm": "B",
+  "model": "ff",
+  "seed": 102,
+  "steps": 300000,
+  "ppo": {
+   "lr": 0.001,
+   "ent_coef": 0.003
+  },
+  "val_suite": "/home/user/adaptarena/results/full/suite_val.json"
+ },
+ "best_val": 124.97142857142858,
+ "best_update": 125
+}

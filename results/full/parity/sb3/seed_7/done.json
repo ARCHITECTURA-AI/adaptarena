@@ -1,0 +1,11 @@
+{
+ "wall": 635.1180083751678,
+ "job": {
+  "out_dir": "/home/user/adaptarena/results/full/parity/sb3/seed_7",
+  "seed": 7,
+  "steps": 1000000,
+  "val_suite": "/home/user/adaptarena/results/full/suite_val.json"
+ },
+ "best_val": 212.1,
+ "sps": 1576.8282150442237
+}

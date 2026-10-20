@@ -1,0 +1,42 @@
+{
+ "arms": {
+  "B": {
+   "train_time_episode_survival": 372.19081466450217
+  },
+  "C": {
+   "train_time_episode_survival": 363.58886157823656,
+   "replays": 3721.2,
+   "fresh": 3987.5,
+   "replay_fraction": 0.48272730810642517,
+   "top_quartile_over_mean": {
+    "n_water": 0.9995951962932249,
+    "n_food": 0.996293504729705,
+    "wall_pct": 0.9929031770627758,
+    "move_cost_pct": 0.9974943381351361,
+    "cold_pct": 1.0078131714969056,
+    "delay": 1.0036709281473994
+   }
+  },
+  "D": {
+   "train_time_episode_survival": 291.12185239760237,
+   "replays": 4604.0,
+   "fresh": 4893.9,
+   "replay_fraction": 0.4847387317196433,
+   "top_quartile_over_mean": {
+    "n_water": 0.9893539779835155,
+    "n_food": 0.976658268305792,
+    "wall_pct": 1.020307668840348,
+    "move_cost_pct": 1.0019002241028256,
+    "cold_pct": 1.0107306550835127,
+    "delay": 1.0012758108481385
+   }
+  }
+ },
+ "training_distribution_certified_fraction": 1.0,
+ "noise_ceiling_spearman_sampled_rollouts": [
+  0.6431597143411055,
+  0.6266598583131424,
+  0.5390477775484018
+ ],
+ "cv_r2_survival_from_parameters": 0.02342504835808503
+}

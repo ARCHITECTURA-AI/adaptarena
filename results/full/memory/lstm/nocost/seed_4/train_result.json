@@ -1,0 +1,38 @@
+{
+ "out_dir": "/home/user/adaptarena/results/full/memory/lstm/nocost/seed_4",
+ "best_val": 114.12857142857143,
+ "best_update": 425,
+ "final_val": 108.31428571428572,
+ "steps": 999424,
+ "wall_seconds": 1031.747787475586,
+ "sps": 968.6708439136335,
+ "extra": {},
+ "config": {
+  "total_steps": 1000000,
+  "n_envs": 8,
+  "n_steps": 256,
+  "epochs": 10,
+  "n_minibatches": 2,
+  "seq_len": 64,
+  "lr": 0.001,
+  "gamma": 0.99,
+  "gae_lambda": 0.95,
+  "clip": 0.2,
+  "ent_coef": 0.003,
+  "vf_coef": 0.5,
+  "max_grad_norm": 0.5,
+  "anneal_lr": true,
+  "bootstrap_timeout": true,
+  "reward_scale": 0.01,
+  "seed": 4,
+  "eval_every": 25,
+  "save_fracs": [
+   0.0,
+   0.1,
+   0.5,
+   1.0
+  ]
+ },
+ "model": "ppo_lstm",
+ "n_params": 424519
+}

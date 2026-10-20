@@ -1,0 +1,38 @@
+{
+ "out_dir": "/home/user/adaptarena/results/full/tune/lstm/lr0.001_ent0.03/seed_2",
+ "best_val": 98.55714285714286,
+ "best_update": 75,
+ "final_val": 96.92857142857143,
+ "steps": 299008,
+ "wall_seconds": 348.0573842525482,
+ "sps": 859.0767313904815,
+ "extra": {},
+ "config": {
+  "total_steps": 300000,
+  "n_envs": 8,
+  "n_steps": 256,
+  "epochs": 10,
+  "n_minibatches": 2,
+  "seq_len": 64,
+  "lr": 0.001,
+  "gamma": 0.99,
+  "gae_lambda": 0.95,
+  "clip": 0.2,
+  "ent_coef": 0.03,
+  "vf_coef": 0.5,
+  "max_grad_norm": 0.5,
+  "anneal_lr": true,
+  "bootstrap_timeout": true,
+  "reward_scale": 0.01,
+  "seed": 102,
+  "eval_every": 25,
+  "save_fracs": [
+   0.0,
+   0.1,
+   0.5,
+   1.0
+  ]
+ },
+ "model": "ppo_lstm",
+ "n_params": 424519
+}
