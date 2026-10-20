@@ -1,0 +1,65 @@
+{
+ "seed": 20261020,
+ "excluded": [
+  "suite_test.json",
+  "suite_test_memory.json"
+ ],
+ "conditions": {
+  "familiar": {
+   "condition": "familiar",
+   "split": "test",
+   "n": 50,
+   "tried": 50,
+   "rejected_uncertified": 0,
+   "excluded_collisions": 0
+  },
+  "unseen_layout": {
+   "condition": "unseen_layout",
+   "split": "test",
+   "n": 50,
+   "tried": 50,
+   "rejected_uncertified": 0,
+   "excluded_collisions": 0
+  },
+  "scarce_food": {
+   "condition": "scarce_food",
+   "split": "test",
+   "n": 50,
+   "tried": 50,
+   "rejected_uncertified": 0,
+   "excluded_collisions": 0
+  },
+  "scarce_water": {
+   "condition": "scarce_water",
+   "split": "test",
+   "n": 50,
+   "tried": 50,
+   "rejected_uncertified": 0,
+   "excluded_collisions": 0
+  },
+  "higher_move_cost": {
+   "condition": "higher_move_cost",
+   "split": "test",
+   "n": 50,
+   "tried": 50,
+   "rejected_uncertified": 0,
+   "excluded_collisions": 0
+  },
+  "cold_snap": {
+   "condition": "cold_snap",
+   "split": "test",
+   "n": 50,
+   "tried": 50,
+   "rejected_uncertified": 0,
+   "excluded_collisions": 0
+  },
+  "combined_shift": {
+   "condition": "combined_shift",
+   "split": "test",
+   "n": 50,
+   "tried": 77,
+   "rejected_uncertified": 26,
+   "excluded_collisions": 1
+  }
+ }
+}

@@ -144,14 +144,17 @@ def build_suite_file_excluding(split: str, n_per_cond: int, path: str, condition
         while len(specs) < n_per_cond:
             spec = sample_condition(cond, rng, split)
             tried += 1
-            if spec.sid in banned_sid or spec.layout_id in banned_layout:
+            fixed_layout = cond == "familiar"  # the specialist's own layout is part of the condition; exclude by id only
+            if spec.sid in banned_sid or (not fixed_layout and spec.layout_id in banned_layout):
                 collided += 1
                 continue
             sc = build_scenario(spec)
             res = plan(sc, max_nodes=4000)
             if res.certified and verify_plan(sc, res.actions) >= spec.horizon:
                 specs.append(spec)
-                banned_layout.add(spec.layout_id)
+                banned_sid.add(spec.sid)
+                if not fixed_layout:
+                    banned_layout.add(spec.layout_id)
             else:
                 rejected += 1
         planner = planner_survival(specs)
