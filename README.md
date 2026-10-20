@@ -12,7 +12,7 @@
 
 | Arm | Aggregate ladder-normalised IQM [95% CI] |
 | --- | --- |
-| A: specialist | 0.010 [0.003, 0.019] |
+| A: specialist (pooled over all 7 conditions; 0.81 on its own layout, 0.01 on unseen layouts) | 0.010 [0.003, 0.019] |
 | B: uniform randomization | 0.387 [0.374, 0.400] |
 | C: replay by value loss | 0.337 [0.324, 0.351] |
 | D: replay by planner regret | 0.315 [0.299, 0.331] |
@@ -23,13 +23,14 @@
 - Parity gate with Stable-Baselines3 passed: own PPO IQM survival 216.5, SB3 215.6, curves overlap at 100% of points.
 - Memory track: 1 of 5 locked predictions hit; the LSTM did not beat the feedforward policy where memory was predicted to help (5 seeds vs 10, hyper-parameters borrowed from the feedforward sweep by a dated amendment).
 - Ablations (exploratory): gamma 0.9, 3x3 vision and removing the previous action hurt; the energy-cost stat, naive/potential shaping, gamma 0.999 and time-out-as-death had no measurable effect.
+- Policy ladder: rungs 1-7 and 9 were run; **rung 8 (SSM) was not run in v2**.
 - Scripted baselines are strong: the memory script reaches 0.7 to 1.0 of the planner on every condition, at or above every learned arm. The baseline ladder is on the site and in the report.
 
 Limits: one small custom environment; only this benchmark; a stated hypothesis that lost. Nothing here says regret-guided training is worse in general. The SSM policy was not run (cut order: stretch lane). Hardware numbers are from one named 4-core Xeon.
 <!-- RESULTS:END -->
 
 AdaptArena v2 exists to show that its builder can design an RL environment, implement the learning algorithm, and report results that hold up under scrutiny.
-**The report is the product** (`report/report.pdf`, also on the [site](site/)); the site, the video and the package exist to get you to it and let you trust it.
+**The report is the product** ([`results/full/report/report.pdf`](results/full/report/report.pdf); also the Report page of the [site](site/published/report.html)); the [overview video](docs/adaptarena_v2_overview.mp4) is captions only; the site, the video and the package exist to get you to it and let you trust it.
 
 ## What a reviewer finds
 
@@ -43,8 +44,9 @@ AdaptArena v2 exists to show that its builder can design an RL environment, impl
 ## Install and use
 
 ```bash
-pip install adaptarena            # environment, planner, baselines (NumPy + Gymnasium only)
-pip install "adaptarena[lab]"     # + PyTorch, training code, statistics
+# not on PyPI yet: install from git
+pip install "adaptarena @ git+https://github.com/ARCHITECTURA-AI/adaptarena"          # environment, planner, baselines (NumPy + Gymnasium only)
+pip install "adaptarena[lab] @ git+https://github.com/ARCHITECTURA-AI/adaptarena"    # + PyTorch, training code, statistics
 ```
 
 ```python

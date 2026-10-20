@@ -14,6 +14,7 @@ import os
 import shutil
 from typing import List
 
+import numpy as np
 import yaml
 
 from . import plan as planmod
@@ -135,8 +136,10 @@ CARD = """# Model card: {name}
 - **Training**: arm {arm} ({arm_name}), seed {seed}, {steps:,} transitions, checkpoint = highest mean validation survival (update {best_update}).
 - **Weights**: `model.pt` (PyTorch `state_dict`), SHA-256 `{sha}`.
 - **Environment**: `AdaptArena-Survival-v1`, observation {obs}.
+- **Probes**: they show behavior and input sensitivity, not reasoning.
 - **Intended use**: reproducing the published benchmark and exploring the site's probes. Frozen policy: it does not learn at inference time.
-- **Result on the locked test suite**: ladder-normalised aggregate IQM for this arm {iqm}.
+- **Result on the locked test suite**: ladder-normalised aggregate IQM for this {unit} {iqm}. IQMs are arm-level (over all seeds of the arm), not this seed's score.
+- **Seed**: seed 0 was fixed in advance as the released checkpoint, not picked for its score.
 - **Limitations**: trained and evaluated on one small custom environment; behaviour outside the stated distributions is not characterised; probes show behaviour, not reasoning.
 - **Config hash**: `{cfg_hash}`; analysis plan `{plan}`.
 """
@@ -162,13 +165,20 @@ def release(tier_name: str) -> List[str]:
         os.makedirs(dst, exist_ok=True)
         shutil.copy(w, os.path.join(dst, "model.pt"))
         cfg_hash = hashlib.sha256(json.dumps(tr["config"], sort_keys=True).encode()).hexdigest()[:16]
-        iqm = "n/a"
+        iqm, unit = "n/a", "arm"
         if hl and name.startswith("ppo_ff"):
             a = hl["per_arm"][arm]["aggregate_iqm"]
             iqm = f"{a['iqm']:.3f} [{a['lo']:.3f}, {a['hi']:.3f}]"
+        elif name.startswith("ppo_lstm"):
+            from . import stats as S
+            mp = os.path.join(tdir, "memory", "memory.json")
+            if os.path.exists(mp):
+                raw = json.load(open(mp))["raw_scores"]["lstm"]
+                a = S.iqm_with_ci({c: np.array(v) for c, v in raw.items()})
+                iqm, unit = f"{a['iqm']:.3f} [{a['lo']:.3f}, {a['hi']:.3f}] (5 seeds, 7 conditions, locked test suite)", "arm"
         open(os.path.join(dst, "model_card.md"), "w").write(CARD.format(
             name=name, model=tr["model"], n_params=tr["n_params"], rung=7 if "lstm" in name else 5, arm=arm, arm_name=ARMS[arm],
-            seed=0, steps=tr["steps"], best_update=tr["best_update"], sha=sha256(w), obs="obs-v9", iqm=iqm,
+            seed=0, unit=unit, steps=tr["steps"], best_update=tr["best_update"], sha=sha256(w), obs="obs-v9", iqm=iqm,
             cfg_hash=cfg_hash, plan=plan_hash[:16]))
         made.append(dst)
     return made

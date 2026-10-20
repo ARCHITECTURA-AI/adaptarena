@@ -89,3 +89,13 @@ def test_point_of_no_return_on_a_doomed_run():
         env.step(actions[n]); n += 1
     pnr = point_of_no_return(sc, actions[:n])
     assert pnr["step"] is not None and 0 <= pnr["step"] < n
+
+
+def test_readme_relative_links_resolve():
+    import re
+    text = open(os.path.join(planmod.REPO, "README.md")).read()
+    for target in re.findall(r"\]\((?!https?:|#|mailto:)([^)\s]+)\)", text):
+        path = target.split("#")[0]
+        assert os.path.exists(os.path.join(planmod.REPO, path)), f"README link does not resolve: {target}"
+    for needed in ("NOTICE", "LICENSE", "analysis_plan.yaml", "analysis_plan.sha256"):
+        assert os.path.exists(os.path.join(planmod.REPO, needed))

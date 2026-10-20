@@ -183,8 +183,10 @@ def build(tier_name: str, out: str = None) -> str:
         rungs["planner"] = float(plan(build_scenario(spec)).survival)
         challenges.append({"id": f"{cond}-{i}", "label": f"{cond.replace('_', ' ')} #{i}", "spec": spec.to_json(),
                            "rungs": rungs, "layout_hash": _layout_hash(spec)})
+    ssm_run = "ppo_ssm" in learned
     _write(os.path.join(data, "ladder.json"), {"challenges": challenges, "rung_labels": RUNG_LABELS, "wheel": wheel,
-                                              "pyodide": PYODIDE_URL})
+                                              "pyodide": PYODIDE_URL,
+                                              "rung_status": {"ppo_ssm": "run" if ssm_run else "not run"}})
 
     # ---- compare replays: scenarios x interventions x policies
     comp_sc = [("familiar", 0), ("unseen_layout", 0), ("combined_shift", 0)]
