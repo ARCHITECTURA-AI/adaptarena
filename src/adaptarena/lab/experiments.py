@@ -131,8 +131,10 @@ def train_job(job: dict) -> None:
 def load_model(run_dir: str, kind: str, which: str = "best"):
     import torch
     from .models import make_model
-    m = make_model(kind)
-    m.load_state_dict(torch.load(os.path.join(run_dir, f"model_{which}.pt"), map_location="cpu"))
+    sd = torch.load(os.path.join(run_dir, f"model_{which}.pt"), map_location="cpu")
+    first = next(k for k in ("actor.0.weight", "enc.weight") if k in sd)  # input width: v2 observation or obs-v9-map
+    m = make_model(kind, obs_dim=int(sd[first].shape[1]))
+    m.load_state_dict(sd)
     m.eval()
     return m
 

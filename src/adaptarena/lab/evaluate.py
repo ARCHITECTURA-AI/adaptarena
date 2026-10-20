@@ -46,7 +46,7 @@ def evaluate(policy, specs: Sequence[ScenarioSpec], action_seeds: Optional[Seque
     seeds = list(action_seeds) if action_seeds is not None else list(range(len(specs)))
     for lo in range(0, len(specs), max_batch):
         results += _evaluate_chunk(policy, list(specs[lo:lo + max_batch]), seeds[lo:lo + max_batch],
-                                   env_config, deterministic, record_actions)
+                                   env_config, deterministic, record_actions, env_factory)
     return results
 
 

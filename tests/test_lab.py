@@ -123,3 +123,94 @@ def test_cli_lock_plan_accepts_a_path(tmp_path):
 
 def test_repo_v2_1_plan_hash_matches_file():
     assert planmod.file_hash(planmod.PLAN_V2_1) == open(planmod.HASH_V2_1).read().strip()
+
+
+# ---------------------------------------------------------------------------------------- v2.1 Phase 4
+def _script_and_tracker_agree(spec, seed=0):
+    """Run the memory script; feed the same observations to a MapTracker; compare maps after every step."""
+    from adaptarena.core.baselines import MemoryScript
+    from adaptarena.lab.memory import MapTracker
+    sc = build_scenario(spec)
+    env = SurvivalEnv()
+    obs = env.reset(sc)
+    script, trk = MemoryScript(), MapTracker()
+    script.reset(seed)
+    trk.reset(seed)
+    while not env.done:
+        trk.update(obs)
+        a = script.act(obs)
+        assert (script.y, script.x) == (trk.y, trk.x)
+        assert script.floor == trk.floor
+        assert {c: r["kind"] for c, r in script.sites.items()} == {c: r["kind"] for c, r in trk.sites.items()}
+        for c, r in script.sites.items():  # ready flags may differ only at the cell where the script just chose INTERACT
+            if c != (script.y, script.x) or a != P.INTERACT:
+                assert r["ready"] == trk.sites[c]["ready"], (c, r, trk.sites[c])
+        obs = env.step(a)[0]
+
+
+def test_map_tracker_reproduces_memory_script_map_on_recorded_rollouts():
+    rng = np.random.default_rng(3)
+    for cond in ("unseen_layout", "scarce_food", "higher_move_cost"):
+        _script_and_tracker_agree(sample_condition(cond, rng, "val"), seed=1)
+
+
+def test_map_batch_env_appends_channels_and_is_idempotent():
+    from adaptarena.core import BatchEnv
+    from adaptarena.lab.memory import MAP_DIM, MapBatchEnv
+    rng = np.random.default_rng(0)
+    specs = [sample_condition("unseen_layout", rng, "val") for _ in range(3)]
+    plain, mapped = BatchEnv(3), MapBatchEnv(3)
+    plain.reset_all(specs)
+    mapped.reset_all(specs)
+    for step in range(6):
+        a = plain.flat_obs()
+        b = mapped.flat_obs()
+        assert b.shape == (3, P.OBS_DIM + MAP_DIM)
+        assert np.array_equal(a, b[:, :P.OBS_DIM])
+        assert np.array_equal(b, mapped.flat_obs())  # second call on the same state changes nothing
+        acts = rng.integers(0, 6, 3)
+        plain.step(acts)
+        mapped.step(acts)
+    assert mapped.flat_obs()[:, P.OBS_DIM + 2 * 81:].sum() > 0  # known floor is filled in
+
+
+def test_models_accept_wider_observation_and_load_model_infers_width(tmp_path):
+    import torch
+    from adaptarena.lab.experiments import load_model
+    from adaptarena.lab.models import make_model
+    for kind in ("ff", "lstm", "ssm"):
+        m = make_model(kind, obs_dim=902)
+        d = tmp_path / kind
+        d.mkdir()
+        torch.save(m.state_dict(), d / "model_best.pt")
+        assert load_model(str(d), kind).state_dict().keys() == m.state_dict().keys()
+
+
+def test_shadow_labeler_agrees_with_the_script_on_its_own_rollouts():
+    """On the script's own observation stream the shadow labeller must say what the script did (to within the
+    one-step seen_dep lag), otherwise DAgger labels would not be the script's."""
+    from adaptarena.lab import imitation as I
+    rng = np.random.default_rng(5)
+    specs = [sample_condition("unseen_layout", rng, "val") for _ in range(3)]
+    ep = I._roll(specs, [0, 1, 2])
+    match = total = 0
+    for i in range(len(ep)):
+        lab = I.ShadowLabeler()
+        lab.reset(i)
+        for t in range(len(ep.act[i])):
+            obs = {"grid": ep.grid[i][t].astype(np.float32).reshape(P.N_CHANNELS, P.VIEW, P.VIEW), "stats": ep.stats[i][t]}
+            match += int(lab.label(obs) == ep.act[i][t])
+            total += 1
+    assert match / total > 0.98, match / total
+
+
+def test_imitation_smoke_collect_train_score(tmp_path):
+    from adaptarena.lab import imitation as I
+    ep = I.collect(4, seed=0, workers=1)
+    assert len(ep) == 4 and ep.n_samples > 0
+    I.save_episodes(ep, str(tmp_path / "d.npz"))
+    back = I.load_episodes(str(tmp_path / "d.npz"))
+    assert back.n_samples == ep.n_samples and np.array_equal(back.act[0], ep.act[0])
+    for kind, w in (("ff", 64), ("lstm", 64)):
+        m = I.train_clone(kind, ep, 1, 0, window=w)
+        assert 0.0 <= I.action_agreement(m, kind, ep) <= 1.0

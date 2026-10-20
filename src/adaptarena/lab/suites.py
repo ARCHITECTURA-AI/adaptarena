@@ -55,12 +55,12 @@ class Suite:
         return [s for c in self.conditions for s in self.specs[c]]
 
     def evaluate(self, policy, env_config: Optional[EnvConfig] = None, deterministic: bool = True,
-                 record: bool = False) -> dict:
+                 record: bool = False, env_factory=None) -> dict:
         """Run `policy` on every condition. Returns per-condition raw survival, causes and normalised scores."""
         out = {}
         for c in self.conditions:
             res = evaluate(policy, self.specs[c], list(range(len(self.specs[c]))), env_config,
-                           deterministic=deterministic, record_actions=record)
+                           deterministic=deterministic, record_actions=record, env_factory=env_factory)
             surv = survival_array(res)
             score, valid = ladder_normalise(surv, self.rand[c], self.planner[c])
             out[c] = {"survival": surv, "score": score, "valid": valid, "results": res,
