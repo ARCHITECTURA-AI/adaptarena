@@ -167,7 +167,7 @@ venv.bak/
 .ropeproject
 
 # mkdocs/Zensical documentation
-/site
+# (mkdocs /site ignore removed: ./site is the AdaptArena showcase source)
 
 # mypy
 .mypy_cache/
@@ -227,3 +227,4 @@ site/dist/
 site/node_modules/
 *.egg-info/
 results/**/export/
+site/assets/app.js
