@@ -1,0 +1,20 @@
+{
+ "wall": 1023.3433239459991,
+ "job": {
+  "out_dir": "/home/user/adaptarena/results/full/memory/lstm/vision3/seed_2",
+  "arm": "B",
+  "model": "lstm",
+  "seed": 2,
+  "steps": 1000000,
+  "env": {
+   "vision": 3
+  },
+  "ppo": {
+   "lr": 0.001,
+   "ent_coef": 0.003
+  },
+  "val_suite": "/home/user/adaptarena/results/full/suite_val.json"
+ },
+ "best_val": 114.97142857142858,
+ "best_update": 300
+}

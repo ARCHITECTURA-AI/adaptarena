@@ -207,11 +207,11 @@ CITES = {
 }
 
 CSS = """
-@page { size: Letter; margin: 0.6in 0.65in; }
-body { font: 9.6pt/1.38 "Georgia", "Times New Roman", serif; color: #111; max-width: 7.2in; margin: 0 auto; }
+@page { size: Letter; margin: 0.5in 0.55in; }
+body { font: 9pt/1.32 "Georgia", "Times New Roman", serif; color: #111; max-width: 7.4in; margin: 0 auto; }
 h1 { font-size: 17pt; margin: 0 0 2pt; } h2 { font-size: 11.5pt; margin: 11pt 0 3pt; border-bottom: 1px solid #bbb; }
 h3 { font-size: 10pt; margin: 8pt 0 2pt; } p { margin: 3pt 0 5pt; text-align: justify; }
-.meta { color: #555; font-size: 8.5pt; } figure { margin: 5pt 0; text-align: center; } figure img { max-width: 100%; }
+.meta { color: #555; font-size: 8.5pt; } figure { margin: 4pt 0; text-align: center; break-inside: avoid; } figure img { max-width: 100%; }
 figcaption { font-size: 8.2pt; color: #333; text-align: left; } table { border-collapse: collapse; font-size: 8.2pt; margin: 4pt 0; width: 100%; }
 td, th { border-bottom: 1px solid #ccc; padding: 2pt 5pt; text-align: left; vertical-align: top; } th { background: #f1f1ec; }
 .cols { display: flex; gap: 10pt; } .cols > * { flex: 1; } .refs { font-size: 7.6pt; columns: 2; } .refs li { margin: 0 0 1pt; }
@@ -278,7 +278,7 @@ def build_report_html(tier_name: str, figs: dict) -> str:
     s.append(f"""<h2>1. Question</h2>
 <p>Does sampling training scenarios by <i>planner regret</i> (reference-planner survival minus policy survival) produce agents that
 survive unseen shifts better than uniform randomization, at equal transition budget? This is a hypothesis, and the report is written so that
-either answer is reportable. Arms: A specialist (one fixed layout), B uniform randomization, C replay prioritised by positive value loss,
+either answer is reportable. Arms: A specialist (one fixed layout), B uniform randomization (plain domain randomization, [{CITES['dr']}]), C replay prioritised by positive value loss,
 D replay prioritised by planner regret; C and D share one buffer implementation, so the score is the only difference.
 Two comparisons were declared in advance (D vs B, D vs C); everything else is exploratory.</p>
 <p><b>Positioning.</b> Minigrid [{CITES['minigrid']}] and Procgen [{CITES['procgen']}] are established generalisation benchmarks and Craftax
@@ -311,8 +311,14 @@ A scenario enters any suite only if the planner certifies it. The planner is a s
     # 3 methods
     tune_txt = ""
     if tuned:
-        tune_txt = " Tuned (learning rate, entropy coefficient): " + "; ".join(
-            f"{k} {v['best']['lr']:g}, {v['best']['ent_coef']:g}" for k, v in tuned.items()) + " (SSM reuses the LSTM setting: a recorded difference in tuning effort)."
+        amended = os.path.exists(planmod.AMEND) and "lstm-tuning-fallback" in open(planmod.AMEND).read()
+        tune_txt = (f" Tuned (learning rate, entropy coefficient) on the feedforward sweep: {tuned['ff']['best']['lr']:g}, {tuned['ff']['best']['ent_coef']:g}. "
+                    "The best cell sits on the edge of the grid and the 300k-transition sweep favours fast starters, a limitation of the protocol.")
+        if amended and "lstm" in tuned:
+            lg = tuned["lstm"]["grid"]
+            tune_txt += (f" The LSTM sweep was uninformative (every cell within noise of an untrained policy: validation survival {min(lg.values()):.0f} to {max(lg.values()):.0f}), "
+                         "so by a dated amendment recorded before any memory-track run the LSTM and SSM use the feedforward pair; this is a recorded difference in tuning effort, "
+                         "and the memory-track comparison is not called controlled with respect to tuning.")
     par_txt = ""
     if par:
         par_txt = (f"<b>Parity gate with SB3.</b> Both implementations trained with the same hyper-parameters, environment, reward scaling and transition budget on "
@@ -322,7 +328,7 @@ A scenario enters any suite only if the planner certifies it. The planner is a s
                    f"<span class='flag'>Gate {'passed' if par['passed'] else 'FAILED'}.</span>")
     s.append(f"""<h2>3. Methods</h2>
 <p><b>Learner.</b> PPO written from scratch in one file ({CITES['cleanrl']} style; {CITES['ppo']}; {CITES['gae']}): vectorised rollouts, GAE with bootstrap on truncation and never on death,
-clipped surrogate, entropy bonus, advantage normalisation, linear learning-rate decay, gradient clipping, and a recurrent variant on 64-step sequence chunks with hidden-state resets at episode boundaries.
+clipped surrogate, entropy bonus, advantage normalisation, linear learning-rate decay, gradient clipping, and a recurrent variant on 64-step sequence chunks with hidden-state resets at episode boundaries (the stretch SSM is a small Mamba-style selective state-space block [{CITES['mamba']}], trained with the same loop; it was not run in this tier).
 It is validated by unit tests (hand-computed GAE with one death and one truncation, ratio 1 and clip fraction 0 on the first epoch, overfitting one batch, a tiny solvable environment, same-seed reproducibility,
 LSTM and SSM sequence pass equal to the step-by-step pass) and by the parity gate against Stable-Baselines3 [{CITES['sb3']}].{tune_txt}</p>
 <p>{par_txt}</p>
@@ -336,6 +342,12 @@ probability of improvement, performance profiles, with the training seed within 
     if hl:
         res += img("headline", "Headline figure. Left: per-condition IQM with 95% CIs for the four arms against the random floor, the scripted baselines and the planner ceiling. Right: the companion panel showing what the replay buffers concentrated on (top-priority quartile relative to the buffer mean).")
         res += _headline_text(hl, tier)
+        sm = hl.get("sampled_mode")
+        if sm:
+            res += ("<p>Secondary robustness check, sampled actions (kept in its own file and never mixed into the aggregate above): "
+                    + "; ".join(f"arm {a} IQM {sm[a]['iqm']:.3f}" for a in ARMS) + ". The ordering of the arms is unchanged." if
+                    sorted(ARMS, key=lambda a: -sm[a]["iqm"]) == sorted(ARMS, key=lambda a: -hl["per_arm"][a]["aggregate_iqm"]["iqm"]) else
+                    "<p>Secondary robustness check, sampled actions: " + "; ".join(f"arm {a} IQM {sm[a]['iqm']:.3f}" for a in ARMS) + ". The ordering of the arms differs from the deterministic mode.") + "</p>"
         comb = hl["comparisons"]["D_vs_B"]["per_condition"]["combined_shift"]["iqm_diff"]
         res += (f"<p>Under the combined shift, the D−B difference is {_ci(comb, 'diff')} (exploratory). "
                 f"Training cost for arm D includes planner calls; every arm used the same transition budget.</p>")
@@ -381,13 +393,22 @@ probability of improvement, performance profiles, with the training seed within 
                         for n, v in ab["variants"].items() if n != "default")
         wl += img("ablations", "Single-change ablations, exploratory, validation suite only.", "62%") + f"<p><b>Ablation effects</b> (ladder-normalised survival vs default, {tier['ablation_seeds']} seeds): {eff}.</p>"
         wi = ab.get("wasted_interact_fraction", {})
-        if wi.get("reward_naive") is not None:
-            wl += (f"<p>Naive shaping: {wi['reward_naive'] * 100:.0f}% of valid interactions were taken with a stat at 90% or more (the signature of farming the per-interaction bonus), "
-                   f"vs {_fmt(wi.get('reward_potential', float('nan')) * 100, 0)}% under potential-based shaping.</p>")
+        if wi.get("reward_naive") is not None and wi.get("default") is not None:
+            ratio = wi["reward_naive"] / max(wi["default"], 1e-9)
+            verdict = ("no sign of the exploit" if ratio < 1.25 else "an increase consistent with farming the bonus")
+            wl += (f"<p>Naive shaping, exploit check: the fraction of valid interactions taken with a stat at 90% or more was {wi['reward_naive'] * 100:.0f}% under the naive per-interaction bonus, "
+                   f"{wi['reward_potential'] * 100:.0f}% under potential-based shaping and {wi['default'] * 100:.0f}% under the sparse reward: {verdict} by this metric.</p>")
     if mem:
         sc = "".join(f"<tr><td>{p['shift']}</td><td>{p['predicted']}</td><td><b>{p['status']}</b></td></tr>" for p in mem["predictions"])
         wl += (img("memory", "LSTM minus feedforward, per shift, with 95% CIs.", "62%") +
                f"<table><tr><th>Shift</th><th>Locked prediction (recurrent vs feedforward)</th><th>Scored</th></tr>{sc}</table>")
+        hits = sum(p["status"] == "hit" for p in mem["predictions"])
+        lstm_bv = [json.load(open(f))["best_val"] for f in sorted(__import__("glob").glob(os.path.join(tdir, "memory", "lstm", "default", "seed_*", "done.json")))]
+        ff_bv = [json.load(open(f))["best_val"] for f in sorted(__import__("glob").glob(os.path.join(tdir, "headline", "arm_B", "seed_*", "done.json")))]
+        wl += (f"<p>{hits} of {len(mem['predictions'])} locked predictions were hits; the rest are scored as written, without revision. The recurrent policy did not beat the feedforward policy where memory was predicted to help. "
+               f"Best-checkpoint validation survival was {np.mean(lstm_bv):.0f} for the LSTM ({len(lstm_bv)} seeds) vs {np.mean(ff_bv):.0f} for the feedforward policy ({len(ff_bv)} seeds). "
+               "Caveats that bear on how to read this: LSTM and SSM share the feedforward-selected hyper-parameters (see the amendment above), recurrent training uses 64-step truncated chunks, the LSTM has 5 seeds against 10, "
+               "and a recurrent policy may need more than the 2M-transition budget the feedforward policy was sized for. The result says the memory hypothesis was not supported at this budget, not that memory cannot help.</p>")
         pr = mem.get("recurrent_probe")
         if pr and pr["models"]:
             m0 = pr["models"][0]

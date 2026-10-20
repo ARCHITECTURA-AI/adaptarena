@@ -6,7 +6,26 @@
 ![Headline figure](docs/headline.png)
 
 <!-- RESULTS:START -->
-*Results are inserted here from `results/full/headline/stats.json` once the full tier has been run.*
+## Result (full tier: 10 seeds per arm, 2M transitions each, locked test suite of 7 conditions x 50 certified scenarios)
+
+**Planner-regret replay did not beat uniform randomization; it lost.** The pre-declared outcome rule fired as `D_loses_to_B`.
+
+| Arm | Aggregate ladder-normalised IQM [95% CI] |
+| --- | --- |
+| A: specialist | 0.010 [0.003, 0.019] |
+| B: uniform randomization | 0.387 [0.374, 0.400] |
+| C: replay by value loss | 0.337 [0.324, 0.351] |
+| D: replay by planner regret | 0.315 [0.299, 0.331] |
+
+- D vs B (pre-declared): IQM difference -0.072 [-0.093, -0.051], P(improvement) 0.193 [0.121, 0.271]: **not supported**.
+- D vs C (pre-declared): -0.022 [-0.043, -0.001]: **not supported**.
+- Why (exploratory diagnosis in the report): every training scenario is planner-solvable, so regret collapses to the policy's shortfall; ~48% of replay-arm episodes are repeats (half as many distinct scenarios at equal budget); scenario parameters explain almost none of what is hard (CV R² 0.02); the score is noisy (rank correlation 0.60 across sampled rollouts).
+- Parity gate with Stable-Baselines3 passed: own PPO IQM survival 216.5, SB3 215.6, curves overlap at 100% of points.
+- Memory track: 1 of 5 locked predictions hit; the LSTM did not beat the feedforward policy where memory was predicted to help (5 seeds vs 10, hyper-parameters borrowed from the feedforward sweep by a dated amendment).
+- Ablations (exploratory): gamma 0.9, 3x3 vision and removing the previous action hurt; the energy-cost stat, naive/potential shaping, gamma 0.999 and time-out-as-death had no measurable effect.
+- Scripted baselines are strong: the memory script reaches 0.7 to 1.0 of the planner on every condition, at or above every learned arm. The baseline ladder is on the site and in the report.
+
+Limits: one small custom environment; only this benchmark; a stated hypothesis that lost. Nothing here says regret-guided training is worse in general. The SSM policy was not run (cut order: stretch lane). Hardware numbers are from one named 4-core Xeon.
 <!-- RESULTS:END -->
 
 AdaptArena v2 exists to show that its builder can design an RL environment, implement the learning algorithm, and report results that hold up under scrutiny.

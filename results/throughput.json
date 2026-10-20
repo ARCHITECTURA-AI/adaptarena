@@ -1,0 +1,14 @@
+{
+ "machine": "Intel(R) Xeon(R) Processor @ 2.80GHz",
+ "cores": 4,
+ "platform": "Linux-6.18.44-fc-v139-x86_64-with-glibc2.39",
+ "python": "3.13.16",
+ "numpy": "2.5.4",
+ "steps_per_second": {
+  "reference_scalar": 18499.49612255492,
+  "batch_8_with_observations": 32158.21100650592,
+  "batch_16_with_observations": 58426.10018537659,
+  "batch_64_with_observations": 122453.87962731648,
+  "batch_256_with_observations": 186942.18639195772
+ }
+}

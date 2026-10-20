@@ -1,0 +1,38 @@
+{
+ "out_dir": "/home/user/adaptarena/results/full/memory/ff/vision3/seed_0",
+ "best_val": 149.9,
+ "best_update": 488,
+ "final_val": 149.9,
+ "steps": 999424,
+ "wall_seconds": 509.56379866600037,
+ "sps": 1961.3324231753054,
+ "extra": {},
+ "config": {
+  "total_steps": 1000000,
+  "n_envs": 8,
+  "n_steps": 256,
+  "epochs": 10,
+  "n_minibatches": 4,
+  "seq_len": 64,
+  "lr": 0.001,
+  "gamma": 0.99,
+  "gae_lambda": 0.95,
+  "clip": 0.2,
+  "ent_coef": 0.003,
+  "vf_coef": 0.5,
+  "max_grad_norm": 0.5,
+  "anneal_lr": true,
+  "bootstrap_timeout": true,
+  "reward_scale": 0.01,
+  "seed": 0,
+  "eval_every": 25,
+  "save_fracs": [
+   0.0,
+   0.1,
+   0.5,
+   1.0
+  ]
+ },
+ "model": "ppo_ff",
+ "n_params": 404615
+}

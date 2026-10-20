@@ -226,3 +226,4 @@ results/*/headline/arm_*/seed_*/train_log.csv.tmp
 site/dist/
 site/node_modules/
 *.egg-info/
+results/**/export/

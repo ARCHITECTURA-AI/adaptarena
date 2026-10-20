@@ -84,17 +84,16 @@ def run(tier_name: str, workers: int = 4) -> dict:
         ex = []
         for s in range(tier["ablation_seeds"]):
             m = load_model(os.path.join(tdir, "ablations", name, f"seed_{s}"), "ff")
-            ev = suite.evaluate(m, cfg, record=env.get("reward") is not None)
+            ev = suite.evaluate(m, cfg, record=("reward" in env) or name == "default")
             for c in CONDITIONS:
                 per[c].append(per_seed_score(ev[c]))
                 raws[c].append(float(np.mean(ev[c]["survival"])))
-            if "reward" in env:
+            if "reward" in env or name == "default":
                 ex.append(np.mean([wasted_interacts(ev[c]["results"], suite.specs[c], cfg) for c in CONDITIONS]))
         scores[name] = {c: np.array(v) for c, v in per.items()}
         raw[name] = {c: float(np.mean(v)) for c, v in raws.items()}
         if ex:
             exploit[name] = float(np.mean(ex))
-    exploit.setdefault("default", float("nan"))
     rows, out = [], {"label": "exploratory: validation suite only, never the locked test suite",
                      "obs_versions": {n: EnvConfig(**v[1]).obs_version for n, v in VARIANTS.items()},
                      "variants": {}, "wasted_interact_fraction": exploit}
