@@ -220,7 +220,7 @@ def predictions(tier_name: str) -> dict:
                 + (f"and the retuned LSTM stays below feedforward ({lf['suite_val_s1.json']['lstm_minus_ff']['diff']:+.3f} on the validation suite not used for selection). " if lf else "")
                 + "This does not separate the three explanations: no route reaches the script, so the data neither show that the architecture cannot hold the memory the task needs, "
                   "nor that reinforcement learning missed a memory it could have used, nor that memory is unneeded. What it does rule out is a quick fix by a larger backpropagation window "
-                  "(window 256 helps a little), a hand-fed map, or retuning the learning rate and entropy at these budgets.")
+                  "(it helps the LSTM a little, which still stays far below feedforward), a hand-fed map, or retuning the learning rate and entropy at these budgets.")
     elif ff >= 0.9 * best_lstm and best_lstm >= 0.9:
         key = "memory_not_needed"
         text = ("The feedforward clone is as close to the script as the LSTM clone, so little memory is needed here and the gap to the "
