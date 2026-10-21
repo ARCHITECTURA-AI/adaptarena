@@ -1,0 +1,18 @@
+{
+ "wall": 1072.7043359279633,
+ "job": {
+  "out_dir": "/home/user/adaptarena/results/full/v2_1/diagnose/lstm_tune/stage1/lstm_lr0.0003_ent0.003/seed_1",
+  "arm": "B",
+  "model": "lstm",
+  "seed": 1,
+  "steps": 1000000,
+  "ppo": {
+   "lr": 0.0003,
+   "ent_coef": 0.003
+  },
+  "obs": "v2",
+  "val_suite": "/home/user/adaptarena/results/full/suite_val.json"
+ },
+ "best_val": 106.75714285714285,
+ "best_update": 350
+}

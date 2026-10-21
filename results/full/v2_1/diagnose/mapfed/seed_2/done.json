@@ -1,0 +1,18 @@
+{
+ "wall": 1494.0755219459534,
+ "job": {
+  "out_dir": "/home/user/adaptarena/results/full/v2_1/diagnose/mapfed/seed_2",
+  "arm": "B",
+  "model": "ff",
+  "seed": 2,
+  "steps": 2000000,
+  "ppo": {
+   "lr": 0.001,
+   "ent_coef": 0.003
+  },
+  "obs": "v9-map",
+  "val_suite": "/home/user/adaptarena/results/full/suite_val.json"
+ },
+ "best_val": 265.24285714285713,
+ "best_update": 950
+}
