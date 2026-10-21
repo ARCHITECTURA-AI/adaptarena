@@ -1,0 +1,42 @@
+{
+ "out_dir": "/home/user/adaptarena/results/full/v2_1/diagnose/lstm_final/seed_3",
+ "best_val": 150.6,
+ "best_update": 900,
+ "final_val": 144.55714285714285,
+ "steps": 1998848,
+ "wall_seconds": 8040.671310186386,
+ "sps": 248.59217879827324,
+ "extra": {},
+ "config": {
+  "total_steps": 2000000,
+  "n_envs": 8,
+  "n_steps": 256,
+  "epochs": 10,
+  "n_minibatches": 2,
+  "seq_len": 256,
+  "lr": 0.002,
+  "gamma": 0.99,
+  "gae_lambda": 0.95,
+  "clip": 0.2,
+  "ent_coef": 0.01,
+  "vf_coef": 0.5,
+  "max_grad_norm": 0.5,
+  "anneal_lr": true,
+  "bootstrap_timeout": true,
+  "reward_scale": 0.01,
+  "seed": 3,
+  "eval_every": 25,
+  "save_fracs": [
+   0.0,
+   0.1,
+   0.5,
+   1.0
+  ],
+  "profile": false,
+  "fast_rollout": false,
+  "normalize_returns": false,
+  "return_clip": 10.0
+ },
+ "model": "ppo_lstm",
+ "n_params": 424519
+}

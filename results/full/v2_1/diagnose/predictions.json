@@ -1,0 +1,33 @@
+{
+ "tier_label": "diagnostic (P1) and exploratory (P2, P3)",
+ "P1": {
+  "criterion": "LSTM clone at least 0.9 of the script, feedforward clone below 0.6",
+  "lstm_clone_fraction_of_script": {
+   "lstm_w64": 0.19103449724092916,
+   "lstm_w256": 0.14492703941011847
+  },
+  "ff_clone_fraction_of_script": 0.2111642396916532,
+  "grade": "partial"
+ },
+ "P2": {
+  "criterion": "map-fed feedforward at least 0.8 of the script's score at the full budget and above plain feedforward with an interval excluding zero",
+  "map_fraction_of_script": 0.4638243388292099,
+  "map_minus_plain": {
+   "diff": -0.01208668044062755,
+   "lo": -0.06542413845276007,
+   "hi": 0.0417775916301519
+  },
+  "grade": "miss"
+ },
+ "P3": {
+  "criterion": "window 256 beats window 64 with an interval excluding zero",
+  "window256_minus_window64": {
+   "diff": 0.04402902313234336,
+   "lo": 0.017753735166105875,
+   "hi": 0.06744611200133391
+  },
+  "grade": "hit"
+ },
+ "explanation": "data_or_architecture_limit",
+ "verdict": "Both clones stay well below the script (best 0.19 and 0.21 of its score for the LSTM and feedforward clone). DAgger rounds lift them only to 0.44 (feedforward) and 0.34 (LSTM), so the shortfall is not just covariate shift. A hand-fed map does not help reinforcement learning (0.46 of the script, difference from plain feedforward -0.012), and the retuned LSTM stays below feedforward (-0.229 on the validation suite not used for selection). This does not separate the three explanations: no route reaches the script, so the data neither show that the architecture cannot hold the memory the task needs, nor that reinforcement learning missed a memory it could have used, nor that memory is unneeded. What it does rule out is a quick fix by a larger backpropagation window (window 256 helps a little), a hand-fed map, or retuning the learning rate and entropy at these budgets."
+}

@@ -163,7 +163,7 @@ def lstm_final(tier_name: str, workers: int = 4) -> dict:
     t = load_tier(tier_name)
     retune = json.load(open(os.path.join(v21_dir(tier_name, "diagnose"), "lstm_retune.json")))
     cfg = dict(retune["winner"]["ppo"])
-    n = 10 if t["steps"] >= 2_000_000 else t["seeds"]
+    n = int(os.environ.get("ADAPTARENA_LSTM_FINAL_SEEDS", 10 if t["steps"] >= 2_000_000 else t["seeds"]))  # plan: 10; see the deviation note in the report
     jobs = final_jobs(tier_name, cfg, n)
     run_jobs(train_job, jobs, workers)
     out = {"tier_label": "exploratory", "config": cfg, "seeds": n, "steps": t["steps"]}
@@ -176,6 +176,11 @@ def lstm_final(tier_name: str, workers: int = 4) -> dict:
                      "lstm_minus_ff": S.iqm_difference_with_ci(lstm, ff)}
     write_json(os.path.join(v21_dir(tier_name, "diagnose"), "lstm_final.json"), out)
     return out
+
+
+def _load_json(path):
+    import json
+    return json.load(open(path)) if os.path.exists(path) else None
 
 
 def _grade(*conds) -> str:
@@ -207,8 +212,15 @@ def predictions(tier_name: str) -> dict:
     # which of the three explanations does the data support?
     if best_lstm < 0.6 and ff < 0.6:
         key = "data_or_architecture_limit"
-        text = ("Both clones stay well below the script, so the script's behaviour is hard to learn from observations at this data size. "
-                "That does not separate the explanations; DAgger rounds (reported alongside) are the next evidence.")
+        dg = {k: rs[-1]["scores"][suite]["aggregate"] / script for k, rs in (im.get("dagger") or {}).items()}
+        lf = _load_json(os.path.join(d, "lstm_final.json"))
+        text = (f"Both clones stay well below the script (best {best_lstm:.2f} and {ff:.2f} of its score for the LSTM and feedforward clone). "
+                + (f"DAgger rounds lift them only to {dg.get('ff', float('nan')):.2f} (feedforward) and {dg.get('lstm_w256', float('nan')):.2f} (LSTM), so the shortfall is not just covariate shift. " if dg else "")
+                + f"A hand-fed map does not help reinforcement learning ({mp['map_fraction_of_script']:.2f} of the script, difference from plain feedforward {mp['map_minus_plain']['diff']:+.3f}), "
+                + (f"and the retuned LSTM stays below feedforward ({lf['suite_val_s1.json']['lstm_minus_ff']['diff']:+.3f} on the validation suite not used for selection). " if lf else "")
+                + "This does not separate the three explanations: no route reaches the script, so the data neither show that the architecture cannot hold the memory the task needs, "
+                  "nor that reinforcement learning missed a memory it could have used, nor that memory is unneeded. What it does rule out is a quick fix by a larger backpropagation window "
+                  "(window 256 helps a little), a hand-fed map, or retuning the learning rate and entropy at these budgets.")
     elif ff >= 0.9 * best_lstm and best_lstm >= 0.9:
         key = "memory_not_needed"
         text = ("The feedforward clone is as close to the script as the LSTM clone, so little memory is needed here and the gap to the "
