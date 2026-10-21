@@ -190,6 +190,8 @@ def part2_html(tier_name: str, figs: Dict[str, str]) -> str:
         if ic:
             rows = "".join(f"<tr><td>{n}</td><td>{p['params']:,}</td><td>{p['state_bytes_per_env']:,}</td><td>{_f(p['batch1']['env_steps_per_second'], 0)}</td><td>{_f(p['batch64']['env_steps_per_second'], 0)}</td></tr>" for n, p in ic["policies"].items())
             s.append(f"<table><tr><th>policy</th><th>params</th><th>state bytes / env</th><th>steps/s batch 1</th><th>steps/s batch 64</th></tr>{rows}</table><p>One thread, {html.escape(ic['hardware'])}.</p>")
+    elif _j(os.path.join(v, "ssm_cut.json")):
+        s.append(f"<p><b>SSM (rung 8): not run.</b> {html.escape(_j(os.path.join(v, 'ssm_cut.json'))['reason'])}</p>")
     else:
         s.append("<p>SSM: not run.</p>")
     if q:

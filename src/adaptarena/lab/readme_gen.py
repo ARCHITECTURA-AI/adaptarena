@@ -164,6 +164,8 @@ def v21_block(tier_name: str) -> str:
         pc = ssm["params"]
         out.append(f"\nSSM parameters {pc['ssm']:,} vs LSTM {pc['lstm']:,}. " + (
             f"Trained: validation IQM {_ci(ssm['suite_val.json']['aggregate_iqm'])}." if ssm["tune"]["trained"] else ssm["tune"]["verdict"] + "."))
+    elif _j(os.path.join(v, "ssm_cut.json")):
+        out.append("\nSSM (rung 8): **not run**, cut for compute under the plan's cut order (" + _j(os.path.join(v, "ssm_cut.json"))["reason"].split(". ")[1] + "). Nothing about the SSM is claimed.")
     else:
         out.append("\nSSM: not run yet.")
     q = _j(os.path.join(v, "ssm_int8", "int8.json"))

@@ -186,10 +186,11 @@ def run_stage(stage: str, tier_name: str, workers: int = 4):
 QUEUE = ("mutation", "sweep-mid", "mapfed", "lstm-retune", "lstm-final", "predictions", "ssm", "gamma", "int8", "sweep")
 
 
-def run_queue(tier_name: str, workers: int = 4, stages=QUEUE) -> None:
+def run_queue(tier_name: str, workers: int = 4, stages=None) -> None:
     """Run stages in order. Each is resumable; a failing stage is logged and the queue moves on."""
     import time
     import traceback
+    stages = stages or (os.environ["ADAPTARENA_QUEUE"].split(",") if os.environ.get("ADAPTARENA_QUEUE") else QUEUE)
     log = os.path.join(v21_dir(tier_name), "queue.log")
     for st in stages:
         t0 = time.time()
