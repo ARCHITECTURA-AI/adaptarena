@@ -136,6 +136,9 @@ def v21_block(tier_name: str) -> str:
         for b in sw["budgets"]:
             out.append(f"| {b / 1e6:g}M | {_ci(sw['points'][f'B@{b}']['aggregate_iqm'])} | {_ci(sw['points'][f'D@{b}']['aggregate_iqm'])} | {_ci(sw['d_minus_b'][str(b)], 'diff')} |")
         out += ["", f"{sw['outcome_text']} ({sw['claim_status']}.)"]
+        cut = _j(os.path.join(v, "scale", "sweep_high_cut.json"))
+        if cut:
+            out += ["", cut["summary"]]
     else:
         out.append("\nNot run yet.")
     # memory diagnostics
@@ -150,6 +153,10 @@ def v21_block(tier_name: str) -> str:
         if im.get("dagger"):
             dg = ", ".join(f"{k}: " + " -> ".join(_f(r["scores"]["suite_val"]["aggregate"], 2) for r in rs) for k, rs in im["dagger"].items())
             out.append(f"DAgger-lite rounds (round 0 to {len(next(iter(im['dagger'].values()))) - 1}): {dg}.")
+    lf = _j(os.path.join(v, "diagnose", "lstm_final.json"))
+    if lf:
+        d = lf["suite_val_s1.json"]
+        out.append(f"Retuned LSTM ({lf['seeds']} seeds at {lf['steps'] / 1e6:g}M; the plan said 10, cut for compute because each run took about 2.3 hours): {_ci(d['lstm_retuned']['iqm'])} against feedforward arm B {_ci(d['ff_arm_B']['iqm'])} on `suite_val_s1.json`.")
     if pr:
         out += ["", "| Prediction | Criterion | Grade |", "| --- | --- | --- |"]
         for k in ("P1", "P2", "P3"):
@@ -165,7 +172,7 @@ def v21_block(tier_name: str) -> str:
         out.append(f"\nSSM parameters {pc['ssm']:,} vs LSTM {pc['lstm']:,}. " + (
             f"Trained: validation IQM {_ci(ssm['suite_val.json']['aggregate_iqm'])}." if ssm["tune"]["trained"] else ssm["tune"]["verdict"] + "."))
     elif _j(os.path.join(v, "ssm_cut.json")):
-        out.append("\nSSM (rung 8): **not run**, cut for compute under the plan's cut order (" + _j(os.path.join(v, "ssm_cut.json"))["reason"].split(". ")[1] + "). Nothing about the SSM is claimed.")
+        out.append("\nSSM (rung 8): **not run**, " + _j(os.path.join(v, "ssm_cut.json"))["summary"] + ". Nothing about the SSM is claimed.")
     else:
         out.append("\nSSM: not run yet.")
     q = _j(os.path.join(v, "ssm_int8", "int8.json"))

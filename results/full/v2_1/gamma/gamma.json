@@ -1,0 +1,82 @@
+{
+ "tier_label": "exploratory",
+ "suite": "suite_val_s1.json",
+ "steps": 600000,
+ "seeds": 5,
+ "normalized": {
+  "0.9": {
+   "aggregate_iqm": {
+    "iqm": 0.04552969250599416,
+    "lo": 0.04238646318908498,
+    "hi": 0.04848302137521964
+   }
+  },
+  "0.99": {
+   "aggregate_iqm": {
+    "iqm": 0.1616761208363983,
+    "lo": 0.13438709892942707,
+    "hi": 0.192843098449025
+   }
+  },
+  "0.999": {
+   "aggregate_iqm": {
+    "iqm": 0.16101568691017373,
+    "lo": 0.13784762081759447,
+    "hi": 0.18833170569259822
+   }
+  }
+ },
+ "v2_unnormalized": {
+  "0.9": {
+   "aggregate_iqm": {
+    "iqm": 0.037115101522782835,
+    "lo": 0.0315493214559893,
+    "hi": 0.042961469249864215
+   }
+  },
+  "0.99": {
+   "aggregate_iqm": {
+    "iqm": 0.21564734262658658,
+    "lo": 0.18454381011276672,
+    "hi": 0.24755092892759312
+   }
+  },
+  "0.999": {
+   "aggregate_iqm": {
+    "iqm": 0.2184755697371416,
+    "lo": 0.1803969968385259,
+    "hi": 0.2560933441016384
+   }
+  }
+ },
+ "gamma_0.9_penalty": {
+  "v2": {
+   "diff": 0.17853224110380375,
+   "lo": 0.146421253971933,
+   "hi": 0.210670866575005
+  },
+  "normalized": {
+   "diff": 0.11614642833040413,
+   "lo": 0.0882533916957344,
+   "hi": 0.14778871415509223
+  }
+ },
+ "gamma_0.999_gain": {
+  "v2": {
+   "diff": 0.002828227110555026,
+   "lo": -0.046350573937198575,
+   "hi": 0.0541928848644268
+  },
+  "normalized": {
+   "diff": -0.0006604339262245573,
+   "lo": -0.03920849443228613,
+   "hi": 0.03709471750383927
+  }
+ },
+ "rows": {
+  "gamma_0.9_still_hurts": false,
+  "penalty_shrinks_or_vanishes": true,
+  "gamma_0.999_now_helps": false
+ },
+ "rule": "penalty shrinks if the normalized 0.99-minus-0.9 difference is under 70% of the v2 one or its interval includes zero; 0.999 helps if the normalized 0.999-minus-0.99 interval is above zero"
+}

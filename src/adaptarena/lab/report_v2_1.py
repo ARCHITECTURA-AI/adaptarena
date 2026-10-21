@@ -155,7 +155,8 @@ def part2_html(tier_name: str, figs: Dict[str, str]) -> str:
     if sw:
         rows = "".join(f"<tr><td>{b / 1e6:g}M</td><td>{_ci(sw['points'][f'B@{b}']['aggregate_iqm'])}</td><td>{_ci(sw['points'][f'D@{b}']['aggregate_iqm'])}</td><td>{_ci(sw['d_minus_b'][str(b)], 'diff')}</td></tr>" for b in sw["budgets"])
         s.append(img("v21_budget", "Survival against training budget, log axis. Dots are single seeds.") +
-                 f"<table><tr><th>Budget</th><th>B</th><th>D</th><th>D minus B</th></tr>{rows}</table><p>{html.escape(sw['outcome_text'])} With {sw['seeds']} seeds the intervals are wide and no claim is labelled supported.</p>")
+                 f"<table><tr><th>Budget</th><th>B</th><th>D</th><th>D minus B</th></tr>{rows}</table><p>{html.escape(sw['outcome_text'])} With {sw['seeds']} seeds the intervals are wide and no claim is labelled supported. "
+                 + html.escape((_j(os.path.join(v, 'scale', 'sweep_high_cut.json')) or {}).get('summary', '')) + "</p>")
     else:
         s.append("<p>Not run.</p>")
     # 6 mutation
@@ -216,5 +217,6 @@ def part2_html(tier_name: str, figs: Dict[str, str]) -> str:
              "<li>Tags are unsigned and could not be pushed from the build environment; the lock commit hash is recorded instead.</li>"
              "<li>With 3 seeds at 8M and 20M the budget sweep is descriptive. Timing and weather seeds and layouts in mutation are re-rolled inside the training split, a stricter bound than the plan's 'any'.</li>"
              f"<li>The map-fed, retune and SSM results are exploratory, scored on validation suites, with {t['map_seeds']}, {t['lstm_tune_seeds']} and {t['ssm_seeds']} seeds.</li>"
+             "<li>Cut for compute, following the plan's cut order and recorded in <code>results/full/v2_1/</code>: the 20M budget points, the SSM stage, and the retuned LSTM's 10 seeds (4 were run, so int8 for the LSTM uses 4 seeds, below the plan's 5).</li>"
              "<li>Speed and int8 statements apply to the named machine only. No edge-device or energy claim is made.</li></ul>")
     return "".join(s)

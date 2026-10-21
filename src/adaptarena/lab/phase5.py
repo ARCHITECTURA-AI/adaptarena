@@ -85,17 +85,22 @@ def _table(scores: Dict[str, np.ndarray]) -> dict:
 
 # ------------------------------------------------------------------------------------------ 5a.1 budget sweep
 def sweep_outcome(iqm: Dict[str, Dict[int, float]], diff: Dict[int, dict], budgets: List[int]) -> str:
-    """The four rows of the plan's budget-sweep table, applied in a fixed order. `iqm[arm][budget]` are point estimates."""
-    b2, b8, b20 = budgets
-    plateau = all(iqm[a][b20] - iqm[a][b8] <= 0.02 for a in SWEEP_ARMS)
-    if plateau:
-        return "plateau"          # neither arm improves from the middle to the high budget: the bottleneck is elsewhere
+    """The four rows of the plan's budget-sweep table, applied in a fixed order. `iqm[arm][budget]` are point estimates.
+
+    With three budgets the plateau row compares the middle and the top budget. With two (the 20M points were cut) there is no
+    middle budget, so the plateau row cannot be assessed and is skipped; the other rows compare the top budget with the first.
+    """
+    first, top = budgets[0], budgets[-1]
+    if len(budgets) >= 3:
+        mid = budgets[-2]
+        if all(iqm[a][top] - iqm[a][mid] <= 0.02 for a in SWEEP_ARMS):
+            return "plateau"          # neither arm improves from the middle to the high budget: the bottleneck is elsewhere
     if all(diff[b]["diff"] < 0 for b in budgets):
-        return "b_stays_ahead"    # the v2 negative result is robust to budget
-    both_rise = all(iqm[a][b20] > iqm[a][b2] for a in SWEEP_ARMS)
-    if both_rise and diff[b20]["diff"] > 0 and diff[b20]["lo"] > 0:
-        return "d_overtakes"      # regret helps once the learner is competent
-    return "gap_closes"           # the interval on D minus B at the high budget includes zero: neither helps nor hurts
+        return "b_stays_ahead"        # the v2 negative result is robust to budget
+    both_rise = all(iqm[a][top] > iqm[a][first] for a in SWEEP_ARMS)
+    if both_rise and diff[top]["diff"] > 0 and diff[top]["lo"] > 0:
+        return "d_overtakes"          # regret helps once the learner is competent
+    return "gap_closes"               # the interval on D minus B at the top budget includes zero: neither helps nor hurts
 
 
 SWEEP_TEXT = {
@@ -109,6 +114,8 @@ def evaluate_sweep(tier_name: str) -> dict:
     t = load_tier(tier_name)
     budgets = [t["steps"], t["budget_steps_mid"], t["budget_steps_high"]]
     n = t["budget_seeds"]
+    done = lambda arm, steps: all(os.path.exists(os.path.join(v21_dir(tier_name, "scale"), f"arm_{arm}", f"steps_{steps}", f"seed_{s}", "done.json")) for s in range(n))
+    budgets = [b for b in budgets if b == t["steps"] or all(done(a, b) for a in SWEEP_ARMS)]  # only budgets that were run
     suite = open_suite(tier_name, "Phase 5a.1: budget sweep, B and D at 2M, 8M and 20M (exploratory)")
     points, per_arm = {}, {}
     for arm in SWEEP_ARMS:
@@ -187,5 +194,6 @@ def run(tier_name: str, workers: int = 4, which=("mutation", "sweep")) -> None:
     if "sweep-mid" in which:  # train the middle budget only; scoring waits for the high budget
         run_jobs(train_job, sweep_jobs(tier_name, ("mid",)), workers)
     if "sweep" in which:
-        run_jobs(train_job, sweep_jobs(tier_name), workers)
+        cut = os.path.exists(os.path.join(v21_dir(tier_name, "scale"), "sweep_high_cut.json"))
+        run_jobs(train_job, sweep_jobs(tier_name, ("mid",) if cut else ("mid", "high")), workers)
         evaluate_sweep(tier_name)
