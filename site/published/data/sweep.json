@@ -1,0 +1,610 @@
+{
+ "tier_label": "exploratory",
+ "suite": "suite_test_v2_1.json",
+ "seeds": 3,
+ "budgets": [
+  2000000,
+  8000000
+ ],
+ "points": {
+  "B@2000000": {
+   "aggregate_iqm": {
+    "iqm": 0.36975660004502386,
+    "lo": 0.3533151297333256,
+    "hi": 0.3961361032384798
+   },
+   "per_seed": [
+    {
+     "condition": "familiar",
+     "seed": 0,
+     "score": 0.44248153878609536
+    },
+    {
+     "condition": "familiar",
+     "seed": 1,
+     "score": 0.9571640663846867
+    },
+    {
+     "condition": "familiar",
+     "seed": 2,
+     "score": 1.0
+    },
+    {
+     "condition": "unseen_layout",
+     "seed": 0,
+     "score": 0.47328627568283804
+    },
+    {
+     "condition": "unseen_layout",
+     "seed": 1,
+     "score": 0.5543520956150221
+    },
+    {
+     "condition": "unseen_layout",
+     "seed": 2,
+     "score": 0.5166398029375376
+    },
+    {
+     "condition": "scarce_food",
+     "seed": 0,
+     "score": 0.15188865288018713
+    },
+    {
+     "condition": "scarce_food",
+     "seed": 1,
+     "score": 0.24776347680157534
+    },
+    {
+     "condition": "scarce_food",
+     "seed": 2,
+     "score": 0.2837350738011571
+    },
+    {
+     "condition": "scarce_water",
+     "seed": 0,
+     "score": 0.41051966714320953
+    },
+    {
+     "condition": "scarce_water",
+     "seed": 1,
+     "score": 0.3743360197278686
+    },
+    {
+     "condition": "scarce_water",
+     "seed": 2,
+     "score": 0.38502693478041694
+    },
+    {
+     "condition": "higher_move_cost",
+     "seed": 0,
+     "score": 0.31728013282932305
+    },
+    {
+     "condition": "higher_move_cost",
+     "seed": 1,
+     "score": 0.33528471475536514
+    },
+    {
+     "condition": "higher_move_cost",
+     "seed": 2,
+     "score": 0.29388737715194446
+    },
+    {
+     "condition": "cold_snap",
+     "seed": 0,
+     "score": 0.3631557036841191
+    },
+    {
+     "condition": "cold_snap",
+     "seed": 1,
+     "score": 0.38832916215292507
+    },
+    {
+     "condition": "cold_snap",
+     "seed": 2,
+     "score": 0.5250142967671279
+    },
+    {
+     "condition": "combined_shift",
+     "seed": 0,
+     "score": 0.11606370585916599
+    },
+    {
+     "condition": "combined_shift",
+     "seed": 1,
+     "score": 0.09927905155897351
+    },
+    {
+     "condition": "combined_shift",
+     "seed": 2,
+     "score": 0.12327587142170553
+    }
+   ],
+   "per_condition": {
+    "familiar": 0.7998818683902607,
+    "unseen_layout": 0.5147593914117993,
+    "scarce_food": 0.22779573449430654,
+    "scarce_water": 0.38996087388383166,
+    "higher_move_cost": 0.31548407491221087,
+    "cold_snap": 0.4254997208680573,
+    "combined_shift": 0.11287287627994835
+   },
+   "run_stats": [
+    {
+     "wall_seconds": 1110.5419354438782,
+     "steps": 1998848
+    },
+    {
+     "wall_seconds": 1116.9990346431732,
+     "steps": 1998848
+    },
+    {
+     "wall_seconds": 1085.8075106143951,
+     "steps": 1998848
+    }
+   ]
+  },
+  "B@8000000": {
+   "aggregate_iqm": {
+    "iqm": 0.4257468313520091,
+    "lo": 0.38214856361514005,
+    "hi": 0.467177179590244
+   },
+   "per_seed": [
+    {
+     "condition": "familiar",
+     "seed": 0,
+     "score": 1.0
+    },
+    {
+     "condition": "familiar",
+     "seed": 1,
+     "score": 0.9844317333996518
+    },
+    {
+     "condition": "familiar",
+     "seed": 2,
+     "score": 0.8334538191436524
+    },
+    {
+     "condition": "unseen_layout",
+     "seed": 0,
+     "score": 0.5516936223166775
+    },
+    {
+     "condition": "unseen_layout",
+     "seed": 1,
+     "score": 0.5571185925109221
+    },
+    {
+     "condition": "unseen_layout",
+     "seed": 2,
+     "score": 0.6659731341458233
+    },
+    {
+     "condition": "scarce_food",
+     "seed": 0,
+     "score": 0.2511681107118546
+    },
+    {
+     "condition": "scarce_food",
+     "seed": 1,
+     "score": 0.2046826013144981
+    },
+    {
+     "condition": "scarce_food",
+     "seed": 2,
+     "score": 0.2579901219687422
+    },
+    {
+     "condition": "scarce_water",
+     "seed": 0,
+     "score": 0.5033544376520195
+    },
+    {
+     "condition": "scarce_water",
+     "seed": 1,
+     "score": 0.3108356074284309
+    },
+    {
+     "condition": "scarce_water",
+     "seed": 2,
+     "score": 0.5187137116577469
+    },
+    {
+     "condition": "higher_move_cost",
+     "seed": 0,
+     "score": 0.3770243174302614
+    },
+    {
+     "condition": "higher_move_cost",
+     "seed": 1,
+     "score": 0.26553567408139594
+    },
+    {
+     "condition": "higher_move_cost",
+     "seed": 2,
+     "score": 0.39488031143474217
+    },
+    {
+     "condition": "cold_snap",
+     "seed": 0,
+     "score": 0.5504267743807487
+    },
+    {
+     "condition": "cold_snap",
+     "seed": 1,
+     "score": 0.395641974010412
+    },
+    {
+     "condition": "cold_snap",
+     "seed": 2,
+     "score": 0.585223295971307
+    },
+    {
+     "condition": "combined_shift",
+     "seed": 0,
+     "score": 0.10937702965463482
+    },
+    {
+     "condition": "combined_shift",
+     "seed": 1,
+     "score": 0.10677891413708586
+    },
+    {
+     "condition": "combined_shift",
+     "seed": 2,
+     "score": 0.14094333057348146
+    }
+   ],
+   "per_condition": {
+    "familiar": 0.9392951841811015,
+    "unseen_layout": 0.5915951163244743,
+    "scarce_food": 0.23794694466503163,
+    "scarce_water": 0.4443012522460658,
+    "higher_move_cost": 0.34581343431546646,
+    "cold_snap": 0.5104306814541558,
+    "combined_shift": 0.1190330914550674
+   },
+   "run_stats": [
+    {
+     "wall_seconds": 3623.7382287979126,
+     "steps": 7999488
+    },
+    {
+     "wall_seconds": 3637.506312608719,
+     "steps": 7999488
+    },
+    {
+     "wall_seconds": 3629.0497720241547,
+     "steps": 7999488
+    }
+   ]
+  },
+  "D@2000000": {
+   "aggregate_iqm": {
+    "iqm": 0.3020239315310253,
+    "lo": 0.2859830201214569,
+    "hi": 0.3179156458882408
+   },
+   "per_seed": [
+    {
+     "condition": "familiar",
+     "seed": 0,
+     "score": 0.9870664928292047
+    },
+    {
+     "condition": "familiar",
+     "seed": 1,
+     "score": 0.9812752031675299
+    },
+    {
+     "condition": "familiar",
+     "seed": 2,
+     "score": 1.0
+    },
+    {
+     "condition": "unseen_layout",
+     "seed": 0,
+     "score": 0.4295003059136559
+    },
+    {
+     "condition": "unseen_layout",
+     "seed": 1,
+     "score": 0.4230021721078377
+    },
+    {
+     "condition": "unseen_layout",
+     "seed": 2,
+     "score": 0.3726524421228443
+    },
+    {
+     "condition": "scarce_food",
+     "seed": 0,
+     "score": 0.1698236535666151
+    },
+    {
+     "condition": "scarce_food",
+     "seed": 1,
+     "score": 0.2018087194616277
+    },
+    {
+     "condition": "scarce_food",
+     "seed": 2,
+     "score": 0.17803050406213444
+    },
+    {
+     "condition": "scarce_water",
+     "seed": 0,
+     "score": 0.2993330186086321
+    },
+    {
+     "condition": "scarce_water",
+     "seed": 1,
+     "score": 0.2773773777579205
+    },
+    {
+     "condition": "scarce_water",
+     "seed": 2,
+     "score": 0.31583108295677126
+    },
+    {
+     "condition": "higher_move_cost",
+     "seed": 0,
+     "score": 0.24495191967712202
+    },
+    {
+     "condition": "higher_move_cost",
+     "seed": 1,
+     "score": 0.2869519993121451
+    },
+    {
+     "condition": "higher_move_cost",
+     "seed": 2,
+     "score": 0.2790095989143314
+    },
+    {
+     "condition": "cold_snap",
+     "seed": 0,
+     "score": 0.2913718876783512
+    },
+    {
+     "condition": "cold_snap",
+     "seed": 1,
+     "score": 0.3957865768384165
+    },
+    {
+     "condition": "cold_snap",
+     "seed": 2,
+     "score": 0.3571886235131166
+    },
+    {
+     "condition": "combined_shift",
+     "seed": 0,
+     "score": 0.09470421651723189
+    },
+    {
+     "condition": "combined_shift",
+     "seed": 1,
+     "score": 0.11492078030027236
+    },
+    {
+     "condition": "combined_shift",
+     "seed": 2,
+     "score": 0.1107306700610765
+    }
+   ],
+   "per_condition": {
+    "familiar": 0.9894472319989115,
+    "unseen_layout": 0.40838497338144597,
+    "scarce_food": 0.18322095903012578,
+    "scarce_water": 0.2975138264411079,
+    "higher_move_cost": 0.2703045059678662,
+    "cold_snap": 0.3481156960099614,
+    "combined_shift": 0.10678522229286025
+   },
+   "run_stats": [
+    {
+     "planner_calls": 4630,
+     "planner_seconds": 20.90715003013611,
+     "replays": 4249,
+     "fresh": 4630,
+     "wall_seconds": 1068.1523830890656,
+     "steps": 1998848
+    },
+    {
+     "planner_calls": 5104,
+     "planner_seconds": 22.727633953094482,
+     "replays": 4862,
+     "fresh": 5104,
+     "wall_seconds": 1070.7094233036041,
+     "steps": 1998848
+    },
+    {
+     "planner_calls": 5272,
+     "planner_seconds": 25.363903999328613,
+     "replays": 4874,
+     "fresh": 5272,
+     "wall_seconds": 1073.8670406341553,
+     "steps": 1998848
+    }
+   ]
+  },
+  "D@8000000": {
+   "aggregate_iqm": {
+    "iqm": 0.43002298341443107,
+    "lo": 0.4078514807514059,
+    "hi": 0.4511853661846358
+   },
+   "per_seed": [
+    {
+     "condition": "familiar",
+     "seed": 0,
+     "score": 1.0
+    },
+    {
+     "condition": "familiar",
+     "seed": 1,
+     "score": 1.0
+    },
+    {
+     "condition": "familiar",
+     "seed": 2,
+     "score": 0.9332238987704554
+    },
+    {
+     "condition": "unseen_layout",
+     "seed": 0,
+     "score": 0.5723502415601684
+    },
+    {
+     "condition": "unseen_layout",
+     "seed": 1,
+     "score": 0.6703292425887295
+    },
+    {
+     "condition": "unseen_layout",
+     "seed": 2,
+     "score": 0.581354758758419
+    },
+    {
+     "condition": "scarce_food",
+     "seed": 0,
+     "score": 0.2859714775387053
+    },
+    {
+     "condition": "scarce_food",
+     "seed": 1,
+     "score": 0.24836597420607287
+    },
+    {
+     "condition": "scarce_food",
+     "seed": 2,
+     "score": 0.23341481254113458
+    },
+    {
+     "condition": "scarce_water",
+     "seed": 0,
+     "score": 0.41996601286349305
+    },
+    {
+     "condition": "scarce_water",
+     "seed": 1,
+     "score": 0.49881270981123565
+    },
+    {
+     "condition": "scarce_water",
+     "seed": 2,
+     "score": 0.3553760518631116
+    },
+    {
+     "condition": "higher_move_cost",
+     "seed": 0,
+     "score": 0.3554056499572807
+    },
+    {
+     "condition": "higher_move_cost",
+     "seed": 1,
+     "score": 0.3679990323462654
+    },
+    {
+     "condition": "higher_move_cost",
+     "seed": 2,
+     "score": 0.3458330661655104
+    },
+    {
+     "condition": "cold_snap",
+     "seed": 0,
+     "score": 0.5047755660244434
+    },
+    {
+     "condition": "cold_snap",
+     "seed": 1,
+     "score": 0.5550220717005004
+    },
+    {
+     "condition": "cold_snap",
+     "seed": 2,
+     "score": 0.46874093772802744
+    },
+    {
+     "condition": "combined_shift",
+     "seed": 0,
+     "score": 0.121697622103952
+    },
+    {
+     "condition": "combined_shift",
+     "seed": 1,
+     "score": 0.12989036998667777
+    },
+    {
+     "condition": "combined_shift",
+     "seed": 2,
+     "score": 0.12792301351300822
+    }
+   ],
+   "per_condition": {
+    "familiar": 0.9777412995901518,
+    "unseen_layout": 0.608011414302439,
+    "scarce_food": 0.25591742142863755,
+    "scarce_water": 0.4247182581792801,
+    "higher_move_cost": 0.35641258282301885,
+    "cold_snap": 0.5095128584843237,
+    "combined_shift": 0.126503668534546
+   },
+   "run_stats": [
+    {
+     "repeat_fraction": 0.49474576784470486,
+     "distinct_scenarios": 16684,
+     "episodes": 33021,
+     "score_rank_correlation": 0.7008602056742386,
+     "planner_calls": 16684,
+     "planner_seconds": 60.601563930511475,
+     "replays": 16339,
+     "fresh": 16684,
+     "wall_seconds": 3748.3574528694153,
+     "steps": 7999488
+    },
+    {
+     "repeat_fraction": 0.49460227272727275,
+     "distinct_scenarios": 16011,
+     "episodes": 31680,
+     "score_rank_correlation": 0.6844651095941594,
+     "planner_calls": 16011,
+     "planner_seconds": 57.73503398895264,
+     "replays": 15671,
+     "fresh": 16011,
+     "wall_seconds": 3734.843250989914,
+     "steps": 7999488
+    },
+    {
+     "repeat_fraction": 0.4951008300122854,
+     "distinct_scenarios": 16850,
+     "episodes": 33373,
+     "score_rank_correlation": 0.6889780473717096,
+     "planner_calls": 16850,
+     "planner_seconds": 60.384934186935425,
+     "replays": 16526,
+     "fresh": 16850,
+     "wall_seconds": 3721.6206710338593,
+     "steps": 7999488
+    }
+   ]
+  }
+ },
+ "d_minus_b": {
+  "2000000": {
+   "diff": -0.06773266851399856,
+   "lo": -0.09749783581456513,
+   "hi": -0.04460427963332344
+  },
+  "8000000": {
+   "diff": 0.0042761520624219895,
+   "lo": -0.04244535157093612,
+   "hi": 0.05262145106841311
+  }
+ },
+ "outcome": "gap_closes",
+ "outcome_text": "Both arms rise and the D minus B interval includes zero: the v2 gap closes with budget, and regret neither helps nor hurts.",
+ "claim_status": "descriptive; with this few seeds no claim is labeled supported"
+}

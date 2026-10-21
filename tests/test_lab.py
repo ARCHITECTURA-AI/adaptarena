@@ -89,3 +89,229 @@ def test_point_of_no_return_on_a_doomed_run():
         env.step(actions[n]); n += 1
     pnr = point_of_no_return(sc, actions[:n])
     assert pnr["step"] is not None and 0 <= pnr["step"] < n
+
+
+def test_readme_relative_links_resolve():
+    import re
+    text = open(os.path.join(planmod.REPO, "README.md")).read()
+    for target in re.findall(r"\]\((?!https?:|#|mailto:)([^)\s]+)\)", text):
+        path = target.split("#")[0]
+        assert os.path.exists(os.path.join(planmod.REPO, path)), f"README link does not resolve: {target}"
+    for needed in ("NOTICE", "LICENSE", "analysis_plan.yaml", "analysis_plan.sha256"):
+        assert os.path.exists(os.path.join(planmod.REPO, needed))
+
+
+def test_harness_refuses_suite_under_wrong_plan_hash(tmp_path):
+    """The locked-suite gate: a plan that no longer matches its hash can neither open nor generate a suite."""
+    from adaptarena.lab.suites import open_locked_test_suite
+    plan_file = tmp_path / "analysis_plan_v2_1.yaml"
+    plan_file.write_text("frozen_components: {}\n")
+    h = planmod.lock_plan(str(plan_file))
+    assert (tmp_path / "analysis_plan_v2_1.sha256").read_text().strip() == h
+    (tmp_path / "suite_test_v2_1.json").write_text("{}")  # a suite already exists on disk
+    plan_file.write_text("frozen_components: {}\nedited: true\n")
+    with pytest.raises(planmod.PlanError):
+        open_locked_test_suite(str(tmp_path), "test", plan_path=str(plan_file), name="suite_test_v2_1.json")
+    assert not (tmp_path / "test_access_log.jsonl").exists()  # a refused open is not logged as an access
+
+
+def test_cli_lock_plan_accepts_a_path(tmp_path):
+    p = tmp_path / "analysis_plan_v2_1.yaml"
+    p.write_text("a: 1\n")
+    assert planmod.hash_path_for(str(p)).endswith("analysis_plan_v2_1.sha256")
+
+
+def test_repo_v2_1_plan_hash_matches_file():
+    assert planmod.file_hash(planmod.PLAN_V2_1) == open(planmod.HASH_V2_1).read().strip()
+
+
+# ---------------------------------------------------------------------------------------- v2.1 Phase 4
+def _script_and_tracker_agree(spec, seed=0):
+    """Run the memory script; feed the same observations to a MapTracker; compare maps after every step."""
+    from adaptarena.core.baselines import MemoryScript
+    from adaptarena.lab.memory import MapTracker
+    sc = build_scenario(spec)
+    env = SurvivalEnv()
+    obs = env.reset(sc)
+    script, trk = MemoryScript(), MapTracker()
+    script.reset(seed)
+    trk.reset(seed)
+    while not env.done:
+        trk.update(obs)
+        a = script.act(obs)
+        assert (script.y, script.x) == (trk.y, trk.x)
+        assert script.floor == trk.floor
+        assert {c: r["kind"] for c, r in script.sites.items()} == {c: r["kind"] for c, r in trk.sites.items()}
+        for c, r in script.sites.items():  # ready flags may differ only at the cell where the script just chose INTERACT
+            if c != (script.y, script.x) or a != P.INTERACT:
+                assert r["ready"] == trk.sites[c]["ready"], (c, r, trk.sites[c])
+        obs = env.step(a)[0]
+
+
+def test_map_tracker_reproduces_memory_script_map_on_recorded_rollouts():
+    rng = np.random.default_rng(3)
+    for cond in ("unseen_layout", "scarce_food", "higher_move_cost"):
+        _script_and_tracker_agree(sample_condition(cond, rng, "val"), seed=1)
+
+
+def test_map_batch_env_appends_channels_and_is_idempotent():
+    from adaptarena.core import BatchEnv
+    from adaptarena.lab.memory import MAP_DIM, MapBatchEnv
+    rng = np.random.default_rng(0)
+    specs = [sample_condition("unseen_layout", rng, "val") for _ in range(3)]
+    plain, mapped = BatchEnv(3), MapBatchEnv(3)
+    plain.reset_all(specs)
+    mapped.reset_all(specs)
+    for step in range(6):
+        a = plain.flat_obs()
+        b = mapped.flat_obs()
+        assert b.shape == (3, P.OBS_DIM + MAP_DIM)
+        assert np.array_equal(a, b[:, :P.OBS_DIM])
+        assert np.array_equal(b, mapped.flat_obs())  # second call on the same state changes nothing
+        acts = rng.integers(0, 6, 3)
+        plain.step(acts)
+        mapped.step(acts)
+    assert mapped.flat_obs()[:, P.OBS_DIM + 2 * 81:].sum() > 0  # known floor is filled in
+
+
+def test_models_accept_wider_observation_and_load_model_infers_width(tmp_path):
+    import torch
+    from adaptarena.lab.experiments import load_model
+    from adaptarena.lab.models import make_model
+    for kind in ("ff", "lstm", "ssm"):
+        m = make_model(kind, obs_dim=902)
+        d = tmp_path / kind
+        d.mkdir()
+        torch.save(m.state_dict(), d / "model_best.pt")
+        assert load_model(str(d), kind).state_dict().keys() == m.state_dict().keys()
+
+
+def test_shadow_labeler_agrees_with_the_script_on_its_own_rollouts():
+    """On the script's own observation stream the shadow labeller must say what the script did (to within the
+    one-step seen_dep lag), otherwise DAgger labels would not be the script's."""
+    from adaptarena.lab import imitation as I
+    rng = np.random.default_rng(5)
+    specs = [sample_condition("unseen_layout", rng, "val") for _ in range(3)]
+    ep = I._roll(specs, [0, 1, 2])
+    match = total = 0
+    for i in range(len(ep)):
+        lab = I.ShadowLabeler()
+        lab.reset(i)
+        for t in range(len(ep.act[i])):
+            obs = {"grid": ep.grid[i][t].astype(np.float32).reshape(P.N_CHANNELS, P.VIEW, P.VIEW), "stats": ep.stats[i][t]}
+            match += int(lab.label(obs) == ep.act[i][t])
+            total += 1
+    assert match / total > 0.98, match / total
+
+
+def test_imitation_smoke_collect_train_score(tmp_path):
+    from adaptarena.lab import imitation as I
+    ep = I.collect(4, seed=0, workers=1)
+    assert len(ep) == 4 and ep.n_samples > 0
+    I.save_episodes(ep, str(tmp_path / "d"))
+    back = I.load_episodes(str(tmp_path / "d"))
+    assert back.n_samples == ep.n_samples and np.array_equal(back.act[0], ep.act[0])
+    for kind, w in (("ff", 64), ("lstm", 64)):
+        m = I.train_clone(kind, ep, 1, 0, window=w)
+        assert 0.0 <= I.action_agreement(m, kind, ep) <= 1.0
+
+
+# ---------------------------------------------------------------------------------------- v2.1 Phase 5a
+def test_mutated_specs_stay_inside_the_training_distribution():
+    """No child may leave the arm B training distribution; otherwise test conditions would leak into training."""
+    from adaptarena.core.distributions import sample_train
+    from adaptarena.lab.plr import in_training_distribution, mutate_spec
+    rng = np.random.default_rng(0)
+    for _ in range(300):  # the checker accepts what the training sampler draws
+        assert in_training_distribution(sample_train(rng))
+    for cond in ("scarce_food", "scarce_water", "higher_move_cost", "cold_snap", "combined_shift", "unseen_layout"):
+        # and it rejects the test conditions (unseen_layout is the same range but a held-out layout id)
+        spec = sample_condition(cond, rng, "test")
+        assert not in_training_distribution(spec), cond
+    mrng = np.random.default_rng(1)
+    for _ in range(400):
+        spec = sample_train(rng)
+        for _ in range(6):  # chains of mutations, so clipping at every edge gets exercised
+            child = mutate_spec(spec, mrng)
+            assert in_training_distribution(child), child
+            assert child.sid != spec.sid
+            spec = child
+
+
+def test_mutation_is_pure_and_seeded():
+    from adaptarena.core.distributions import sample_train
+    from adaptarena.lab.plr import mutate_spec
+    spec = sample_train(np.random.default_rng(2))
+    a = mutate_spec(spec, np.random.default_rng(7))
+    b = mutate_spec(spec, np.random.default_rng(7))
+    assert a == b and a is not spec
+
+
+def _drive(src, n_episodes=160, seed=0):
+    """Feed a source fake episode outcomes; returns the sequence of origins it handed out."""
+    rng = np.random.default_rng(seed)
+    origins = []
+    for _ in range(n_episodes):
+        spec, meta = src.sample(0)
+        origins.append(meta[0])
+        src.episode_end(meta, int(rng.integers(50, 400)), float(rng.random()))
+    return origins
+
+
+def test_mutation_arms_share_code_and_queue_children():
+    from adaptarena.lab.sources import MutationSource, make_source
+    kw = dict(capacity=24, planner_nodes=500)
+    e = MutationSource("regret", 0, mutate=True, **kw)
+    ep = MutationSource("value_loss", 0, mutate=True, **kw)
+    kw_buf = dict(min_fill=8)
+    for s in (e, ep):
+        s.buf.min_fill = 8
+    oe, op = _drive(e), _drive(ep)
+    assert "child" in oe and "child" in op and "replay" in oe
+    st = e.stats()
+    assert st["children"] > 0 and 0.0 <= st["uncertified_rate"] <= 1.0
+    assert st["children"] == st["children_rejected_uncertified"] + st["children_accepted"] + st["children_rejected_by_buffer"] + len(e.pending)
+    assert type(make_source("E", 0)) is type(make_source("Eprime", 0)) is MutationSource
+    assert make_source("E", 0).kind == "regret" and make_source("Eprime", 0).kind == "value_loss"
+
+
+def test_arm_f_plays_each_scenario_four_times_and_has_no_children():
+    from adaptarena.lab.sources import MutationSource
+    f = MutationSource("regret", 0, mutate=False, rollouts=4, capacity=24, planner_nodes=500)
+    f.buf.min_fill = 8
+    origins = _drive(f, n_episodes=200)
+    assert set(origins) == {"repeat"} and f.children == 0
+    # every fresh job contributes exactly four rollouts of one spec
+    assert f.episodes >= 200 and f.buf.size > 0
+
+
+def test_replay_source_counters_do_not_change_sampling():
+    """The v2 arms D/C gained diagnostics only: same seed, same sequence of scenarios."""
+    from adaptarena.lab.sources import ReplaySource
+    a, b = ReplaySource("regret", 3, planner_nodes=300), ReplaySource("regret", 3, planner_nodes=300)
+    a.buf.min_fill = b.buf.min_fill = 8
+    sa = [a.sample(0)[0].sid for _ in range(5)]
+    sb = [b.sample(0)[0].sid for _ in range(5)]
+    assert sa == sb
+
+
+@pytest.mark.parametrize("arm", ["E", "Eprime", "F"])
+def test_mutation_arms_train_end_to_end_and_log_buffer_stats(arm, tmp_path):
+    """Each new arm runs through the real PPO loop; with a tiny buffer replay (and, for E, mutation) really happens."""
+    import json as _json
+    from adaptarena.core.env import EnvConfig
+    from adaptarena.lab.models import FFPolicy
+    from adaptarena.lab.ppo import PPOConfig, train
+    from adaptarena.lab.sources import make_source
+    src = make_source(arm, 0)
+    src.buf.min_fill = 3
+    src.planner_nodes = 500
+    val = [sample_condition("unseen_layout", np.random.default_rng(1), "val")]
+    res = train(FFPolicy(), PPOConfig(total_steps=24576, seed=0, eval_every=1000), src, EnvConfig(), val, str(tmp_path))
+    ex = _json.load(open(tmp_path / "train_result.json"))["extra"]
+    assert ex["episodes"] > 0 and 0.0 <= ex["repeat_fraction"] <= 1.0 and ex["distinct_scenarios"] > 0
+    assert ex["replays"] > 0, "the buffer never replayed; the test would not exercise the arm"
+    if arm in ("E", "Eprime"):
+        assert ex["children"] > 0 and ex["planner_calls"] > 0
+    else:
+        assert ex["children"] == 0

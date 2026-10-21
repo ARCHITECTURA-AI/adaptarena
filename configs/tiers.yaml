@@ -18,6 +18,18 @@ smoke:
   redteam_budget: 20
   stress_scenarios: 4
   probe_episodes: 6
+  # v2.1 (analysis_plan_v2_1.yaml)
+  budget_steps_mid: 40960
+  budget_steps_high: 81920
+  budget_seeds: 1
+  mutation_seeds: 1
+  imitation_episodes: 20
+  imitation_epochs: 1
+  imitation_seeds: 1
+  map_seeds: 1
+  lstm_tune_steps: 10240
+  lstm_tune_seeds: 1
+  ssm_seeds: 1
 dev:
   seeds: 3
   scenarios_per_condition: 20
@@ -36,6 +48,18 @@ dev:
   redteam_budget: 120
   stress_scenarios: 12
   probe_episodes: 20
+  # v2.1 (analysis_plan_v2_1.yaml)
+  budget_steps_mid: 800000
+  budget_steps_high: 2000000
+  budget_seeds: 2
+  mutation_seeds: 3
+  imitation_episodes: 200
+  imitation_epochs: 4
+  imitation_seeds: 2
+  map_seeds: 3
+  lstm_tune_steps: 150000
+  lstm_tune_seeds: 2
+  ssm_seeds: 3
 full:
   seeds: 10
   scenarios_per_condition: 50
@@ -54,3 +78,15 @@ full:
   redteam_budget: 400
   stress_scenarios: 20
   probe_episodes: 40
+  # v2.1 (analysis_plan_v2_1.yaml)
+  budget_steps_mid: 8000000
+  budget_steps_high: 20000000
+  budget_seeds: 3
+  mutation_seeds: 10
+  imitation_episodes: 2000
+  imitation_epochs: 8
+  imitation_seeds: 3
+  map_seeds: 5
+  lstm_tune_steps: 1000000
+  lstm_tune_seeds: 3
+  ssm_seeds: 5

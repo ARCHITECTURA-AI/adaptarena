@@ -14,6 +14,8 @@ from typing import Dict, List, Optional
 import numpy as np
 
 from ..core import params as P
+from ..core.baselines import C as _C, MEMORY_EST_DELAY, MemoryScript
+from ..core.batch import BatchEnv
 from ..core.distributions import CONDITIONS, MEMORY_CONDITIONS
 from ..core.env import EnvConfig, SurvivalEnv
 from . import stats as S
@@ -254,3 +256,92 @@ def compression(tdir, tier, ff, lstm, ssm) -> dict:
                               "size_int8_bytes": _size_bytes(q[0]), "latency_ms_fp32_batch8": lat(models[0]),
                               "latency_ms_int8_batch8": lat(q[0]), "seeds": len(models)}
     return out
+
+
+# ----------------------------------------------------------------------------- hand-fed memory (Phase 4.2)
+MAP_CHANNELS = 3  # remembered food sites, remembered water sites, known floor (this environment has no shelters)
+MAP_DIM = MAP_CHANNELS * P.VIEW * P.VIEW
+
+
+class MapTracker(MemoryScript):
+    """The memory script's dead-reckoning map with its decision logic removed.
+
+    `core/baselines.py` is frozen, so the map code is imported through subclassing, not copied. `update` does what the
+    first half of `MemoryScript.act` does (move the dead-reckoned position when the previous action was a valid
+    move, then fold the 9x9 view into the map) and stops there. The script's one action-coupled step, marking a
+    site depleted when it chooses INTERACT, is not applied here: the next observation shows the true state.
+    """
+    name = "map_tracker"
+
+    def update(self, obs: dict) -> None:
+        g, s = obs["grid"], obs["stats"]
+        if s[P.S_PREV_ACTION].any():
+            pa = int(np.argmax(s[P.S_PREV_ACTION]))
+            if pa < 4 and s[P.S_PREV_VALID] > 0.5:
+                dy, dx = ((-1, 0), (1, 0), (0, -1), (0, 1))[pa]
+                self.y += dy
+                self.x += dx
+        self._observe(g)
+        self.t += 1
+
+    def channels(self) -> np.ndarray:
+        """(3, 9, 9) egocentric window centred on the current dead-reckoned cell.
+
+        Sites: 1.0 if last seen ready; if last seen depleted, 0.1 + 0.4 * min(1, age / MEMORY_EST_DELAY), so a
+        remembered-but-empty site is distinguishable from an unknown cell and ripens at the script's assumed delay.
+        Known floor: 1.0 for every cell the walker has seen as floor.
+        """
+        out = np.zeros((MAP_CHANNELS, P.VIEW, P.VIEW), dtype=np.float32)
+        for dy in range(-_C, _C + 1):
+            for dx in range(-_C, _C + 1):
+                cell = (self.y + dy, self.x + dx)
+                if self.floor.get(cell, False):
+                    out[2, _C + dy, _C + dx] = 1.0
+                rec = self.sites.get(cell)
+                if rec is None:
+                    continue
+                if rec["ready"]:
+                    v = 1.0
+                else:
+                    age = max(0, self.t - 1 - (rec["seen_dep"] if rec["seen_dep"] is not None else self.t - 1))
+                    v = 0.1 + 0.4 * min(1.0, age / MEMORY_EST_DELAY)
+                out[0 if rec["kind"] == "food" else 1, _C + dy, _C + dx] = v
+        return out
+
+
+class MapBatchEnv(BatchEnv):
+    """BatchEnv whose flat observation is the v2 vector (659) followed by the 3 map channels (243): obs-v9-map, 902 dims.
+
+    The simulator is untouched. One MapTracker per environment is advanced inside `flat_obs`, once per new state
+    (keyed on the step counter), so repeated calls on the same state are harmless.
+    """
+
+    def __init__(self, n, config=None, **kw):
+        super().__init__(n, config, **kw)
+        self._trk = [MapTracker() for _ in range(n)]
+        for k in self._trk:
+            k.reset(0)
+        self._stamp = np.full(n, -1, dtype=np.int64)
+        self._maps = np.zeros((n, MAP_DIM), dtype=np.float32)
+
+    def reset_env(self, i, scenario):
+        super().reset_env(i, scenario)
+        self._trk[i].reset(0)
+        self._stamp[i] = -1
+
+    def flat_obs(self):
+        o = self.observe()
+        for i in range(self.n):
+            if self._stamp[i] != self.t[i]:
+                self._trk[i].update({"grid": o["grid"][i], "stats": o["stats"][i]})
+                self._maps[i] = self._trk[i].channels().reshape(-1)
+                self._stamp[i] = self.t[i]
+        return np.concatenate([o["grid"].reshape(self.n, -1), o["stats"], self._maps], axis=1)
+
+
+OBS_VARIANTS = {"v2": (None, P.OBS_DIM), "v9-map": (MapBatchEnv, P.OBS_DIM + MAP_DIM)}
+
+
+def env_factory_for(variant: str):
+    """None for the v2 observation (BatchEnv is the default), MapBatchEnv for obs-v9-map."""
+    return OBS_VARIANTS[variant][0]

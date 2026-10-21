@@ -3,7 +3,7 @@ the Gymnasium wrapper is registered lazily and the training lab is a separate ex
 from .core import (BatchEnv, EnvConfig, Scenario, ScenarioSpec, SurvivalEnv, build_scenario,  # noqa: F401
                    plan, verify_plan, with_intervention)
 
-__version__ = "2.0.0"
+__version__ = "2.1.0"
 
 
 def register_envs() -> None:

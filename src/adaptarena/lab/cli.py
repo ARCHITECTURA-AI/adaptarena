@@ -22,7 +22,8 @@ def main(argv=None) -> None:
     add("check-env", "run the Gymnasium environment checker", tier=False)
     add("throughput", "benchmark simulator throughput", tier=False)
     add("calibrate", "difficulty calibration on validation seeds (scripts + planner only)")
-    add("lock-plan", "hash analysis_plan.yaml (commit the result before touching the test suite)", tier=False)
+    lp = add("lock-plan", "hash a plan file (commit the result before touching the test suite)", tier=False)
+    lp.add_argument("--plan", default=None, help="path to the plan yaml (default analysis_plan.yaml)")
     add("tune", "hyper-parameter sweep (validation only)", workers=True)
     add("parity", "own PPO vs SB3 parity gate", workers=True)
     add("headline", "train the four arms and evaluate on the locked suite", workers=True)
@@ -36,6 +37,9 @@ def main(argv=None) -> None:
     add("site", "build the static showcase site from results")
     add("report", "build the technical report from results")
     add("reproduce", "run every stage for a tier", workers=True)
+    v = add("v21", "one AdaptArena v2.1 stage (analysis_plan_v2_1.yaml)", workers=True)
+    from .v2_1 import STAGES
+    v.add_argument("stage", choices=list(STAGES) + ["queue"])
     a = p.parse_args(argv)
 
     if a.cmd == "check-env":
@@ -49,7 +53,7 @@ def main(argv=None) -> None:
         tp()
     elif a.cmd == "lock-plan":
         from . import plan
-        print(plan.lock_plan())
+        print(plan.lock_plan(a.plan) if a.plan else plan.lock_plan())
     elif a.cmd == "calibrate":
         from .calibration import run
         run(a.tier)
@@ -91,6 +95,9 @@ def main(argv=None) -> None:
     elif a.cmd == "report":
         from .report import build
         build(a.tier)
+    elif a.cmd == "v21":
+        from .v2_1 import run_queue, run_stage
+        (run_queue if a.stage == "queue" else lambda t, w: run_stage(a.stage, t, w))(a.tier, a.workers)
     elif a.cmd == "reproduce":
         from .reproduce import run
         run(a.tier, a.workers)

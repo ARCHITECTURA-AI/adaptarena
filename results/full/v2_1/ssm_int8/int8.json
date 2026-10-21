@@ -1,0 +1,112 @@
+{
+ "tier_label": "exploratory",
+ "suite": "suite_val_s1.json",
+ "hardware": "Intel(R) Xeon(R) Processor @ 2.80GHz",
+ "method": "torch.ao.quantization.quantize_dynamic, qint8 weights, float32 activations and recurrent state",
+ "no_conv_layers": "none of the three policies uses a convolution layer, so static quantization is not needed",
+ "rungs": {
+  "ppo_ff": {
+   "seeds": 10,
+   "retention": {
+    "ratio": 0.9507250201138377,
+    "lo": 0.9056654877039221,
+    "hi": 1.0005859009072764,
+    "float32_iqm": 0.3507877705803128,
+    "int8_iqm": 0.3335027102406562
+   },
+   "float32_score": {
+    "iqm": 0.3507877705803128,
+    "lo": 0.3290245516816449,
+    "hi": 0.37227335663754757
+   },
+   "int8_score": {
+    "iqm": 0.3335027102406562,
+    "lo": 0.31292867997274054,
+    "hi": 0.3542178541125244
+   },
+   "action_agreement_mean": 0.9793799597013395,
+   "action_agreement_per_seed": [
+    0.9882425319570716,
+    0.9824254993996289,
+    0.9730307978154383,
+    0.9475610525651543,
+    0.9848422777550184,
+    0.9878915796489669,
+    0.9855730861317453,
+    0.9835895664190707,
+    0.9872027113890025,
+    0.9734404939322973
+   ],
+   "int8_parts": [
+    "actor.0._packed_params:LinearPackedParams",
+    "actor.0:Linear",
+    "actor.2._packed_params:LinearPackedParams",
+    "actor.2:Linear",
+    "critic.0._packed_params:LinearPackedParams",
+    "critic.0:Linear",
+    "critic.2._packed_params:LinearPackedParams",
+    "critic.2:Linear",
+    "pi._packed_params:LinearPackedParams",
+    "pi:Linear",
+    "v._packed_params:LinearPackedParams",
+    "v:Linear"
+   ],
+   "size_fp32_bytes": 1622655,
+   "size_int8_bytes": 415259,
+   "latency_batch1_fp32": {
+    "ms_per_call": 0.30020086000149604,
+    "env_steps_per_second": 3331.1030487887892
+   },
+   "latency_batch1_int8": {
+    "ms_per_call": 0.3587280300052953,
+    "env_steps_per_second": 2787.627161404808
+   }
+  },
+  "ppo_lstm": {
+   "seeds": 4,
+   "retention": {
+    "ratio": 1.1191067850087224,
+    "lo": 0.948897919446362,
+    "hi": 1.3045881413261209,
+    "float32_iqm": 0.1214324004412118,
+    "int8_iqm": 0.1358958232536563
+   },
+   "float32_score": {
+    "iqm": 0.1214324004412118,
+    "lo": 0.08797918154502749,
+    "hi": 0.1646226483925484
+   },
+   "int8_score": {
+    "iqm": 0.1358958232536563,
+    "lo": 0.10764726391998299,
+    "hi": 0.16558609522625398
+   },
+   "action_agreement_mean": 0.9326241748527173,
+   "action_agreement_per_seed": [
+    0.9388934764657308,
+    0.9237636136404214,
+    0.9252589641434263,
+    0.9425806451612904
+   ],
+   "int8_parts": [
+    "cell:LSTMCell",
+    "enc._packed_params:LinearPackedParams",
+    "enc:Linear",
+    "pi._packed_params:LinearPackedParams",
+    "pi:Linear",
+    "v._packed_params:LinearPackedParams",
+    "v:Linear"
+   ],
+   "size_fp32_bytes": 1701573,
+   "size_int8_bytes": 435507,
+   "latency_batch1_fp32": {
+    "ms_per_call": 0.4727396850103105,
+    "env_steps_per_second": 2115.329073712502
+   },
+   "latency_batch1_int8": {
+    "ms_per_call": 0.7156223399942974,
+    "env_steps_per_second": 1397.3851067980477
+   }
+  }
+ }
+}

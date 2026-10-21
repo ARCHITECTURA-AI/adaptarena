@@ -216,6 +216,8 @@ figcaption { font-size: 8.2pt; color: #333; text-align: left; } table { border-c
 td, th { border-bottom: 1px solid #ccc; padding: 2pt 5pt; text-align: left; vertical-align: top; } th { background: #f1f1ec; }
 .cols { display: flex; gap: 10pt; } .cols > * { flex: 1; } .refs { font-size: 7.6pt; columns: 2; } .refs li { margin: 0 0 1pt; }
 code { font-size: 8.4pt; } .flag { font-weight: 700; }
+.tier { font: 700 7pt/1 "Helvetica", sans-serif; text-transform: uppercase; letter-spacing: .04em; padding: 1.5pt 4pt; border-radius: 2pt; vertical-align: middle; border: 1px solid #444; }
+.tier.confirmatory { background: #111; color: #fff; } .tier.exploratory { background: #fff; color: #111; } .tier.diagnostic { background: #e8e8e0; color: #333; border-style: dashed; }
 """
 
 
@@ -454,7 +456,8 @@ probability of improvement, performance profiles, with the training seed within 
            f"full: the published benchmark). Config hashes and checksums are in <code>manifest.json</code>; each stage writes a resumable results folder with manifests, episode CSVs, aggregate CSVs, training metrics, replays and a lockfile. "
            f"Claims in the ledger link to their episode data. Policy weights are omitted from the repository except released checkpoints (model cards in <code>releases/</code>).</p>")
     refs = "<h2>References</h2><ol class='refs'>" + "".join(f"<li>{v}</li>" for v in CITES.values()) + "</ol>"
-    body = "".join(s) + res + wl + dbg + "".join(lim) + rep + refs
+    from .report_v2_1 import part2_html
+    body = "".join(s) + res + wl + dbg + "".join(lim) + rep + part2_html(tier_name, figs) + refs
     return f"<!doctype html><html lang='en'><head><meta charset='utf-8'><title>AdaptArena v2 technical report</title><style>{CSS}</style></head><body>{body}</body></html>"
 
 
@@ -463,6 +466,8 @@ def build(tier_name: str) -> str:
     rdir = os.path.join(tdir, "report")
     os.makedirs(rdir, exist_ok=True)
     figs = figures(tier_name)
+    from .report_v2_1 import figures as figures_v21
+    figs.update(figures_v21(tier_name, os.path.join(rdir, "figures")))
     html_text = build_report_html(tier_name, figs)
     path = os.path.join(rdir, "report.html")
     open(path, "w").write(html_text)
@@ -487,6 +492,10 @@ def build(tier_name: str) -> str:
     except Exception as e:  # pragma: no cover
         print("PDF skipped:", e)
     print("report written to", rdir)
+    if tier_name == "full":  # the README shows the published tier; its results block is generated, never typed
+        from .readme_gen import write_readme
+        write_readme(tier_name)
+        print("README results block regenerated")
     return path
 
 

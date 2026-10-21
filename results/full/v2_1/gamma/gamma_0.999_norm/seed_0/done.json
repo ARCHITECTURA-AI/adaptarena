@@ -1,0 +1,19 @@
+{
+ "wall": 458.77044677734375,
+ "job": {
+  "out_dir": "/home/user/adaptarena/results/full/v2_1/gamma/gamma_0.999_norm/seed_0",
+  "arm": "B",
+  "model": "ff",
+  "seed": 0,
+  "steps": 600000,
+  "ppo": {
+   "lr": 0.001,
+   "ent_coef": 0.003,
+   "gamma": 0.999,
+   "normalize_returns": true
+  },
+  "val_suite": "/home/user/adaptarena/results/full/suite_val.json"
+ },
+ "best_val": 173.88571428571427,
+ "best_update": 225
+}

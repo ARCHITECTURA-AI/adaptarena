@@ -30,7 +30,9 @@ INTERVENTIONS = [
 ]
 RUNG_LABELS = {"random": "Rung 1: uniform random", "reactive_script": "Rung 2: reactive script",
                "memory_script": "Rung 3: memory script", "ppo_ff_armB": "Rung 5: PPO feedforward (arm B)",
-               "ppo_ff_armD": "Rung 5: PPO feedforward (arm D)", "ppo_lstm": "Rung 7: PPO + LSTM",
+               "ppo_ff_armD": "Rung 5: PPO feedforward (arm D)", "ppo_ff_armE": "Rung 5: PPO feedforward (arm E, v2.1)",
+               "ppo_ff_armEprime": "Rung 5: PPO feedforward (arm E-prime, v2.1)", "ppo_lstm": "Rung 7: PPO + LSTM",
+               "ppo_lstm_retuned": "Rung 7: PPO + LSTM (retuned, v2.1)",
                "ppo_ssm": "Rung 8: PPO + SSM", "planner": "Rung 9: reference planner"}
 
 
@@ -183,8 +185,10 @@ def build(tier_name: str, out: str = None) -> str:
         rungs["planner"] = float(plan(build_scenario(spec)).survival)
         challenges.append({"id": f"{cond}-{i}", "label": f"{cond.replace('_', ' ')} #{i}", "spec": spec.to_json(),
                            "rungs": rungs, "layout_hash": _layout_hash(spec)})
+    ssm_run = "ppo_ssm" in learned
     _write(os.path.join(data, "ladder.json"), {"challenges": challenges, "rung_labels": RUNG_LABELS, "wheel": wheel,
-                                              "pyodide": PYODIDE_URL})
+                                              "pyodide": PYODIDE_URL,
+                                              "rung_status": {"ppo_ssm": "run" if ssm_run else "not run"}})
 
     # ---- compare replays: scenarios x interventions x policies
     comp_sc = [("familiar", 0), ("unseen_layout", 0), ("combined_shift", 0)]
@@ -222,6 +226,10 @@ def build(tier_name: str, out: str = None) -> str:
                      ("parity/parity.json", "parity.json"), ("redteam/redteam.json", "redteam.json"),
                      ("calibration.json", "calibration.json"), ("manifest.json", "manifest.json")):
         _copy_if(os.path.join(tdir, src), os.path.join(data, dst))
+    for src, dst in (("v2_1/diagnose/imitation.json", "imitation.json"), ("v2_1/scale/mutation.json", "mutation.json"),
+                     ("v2_1/scale/sweep.json", "sweep.json"), ("v2_1/diagnose/predictions.json", "predictions.json")):
+        _copy_if(os.path.join(tdir, src), os.path.join(data, dst))
+    _copy_if(os.path.join(planmod.REPO, "analysis_plan_v2_1.yaml"), os.path.join(data, "analysis_plan_v2_1.yaml"))
     for src in ("headline/episodes.csv", "headline/aggregate.csv", "headline/comparisons_appendix.csv", "ablations/ablations.csv"):
         _copy_if(os.path.join(tdir, src), os.path.join(data, "results", os.path.basename(src)))
     _copy_if(os.path.join(planmod.REPO, "analysis_plan.yaml"), os.path.join(data, "analysis_plan.yaml"))
@@ -256,6 +264,8 @@ def build_ledger(tier_name: str, tdir: str, plan_hash: str) -> dict:
             claims.append({"id": f"ablation:{name}", "pre_declared": False, "status": "supported" if e["lo"] > 0 or e["hi"] < 0 else "not supported",
                            "claim": f"Ablation '{name}' changes ladder-normalised survival relative to the default (exploratory, validation suite; observed: {v['finding']}).",
                            "evidence": e, "link": "ablations.json"})
+    from .readme_gen import tag_v2_claims, v21_claims
+    claims = tag_v2_claims(claims) + v21_claims(tier_name)
     amend = [json.loads(l) for l in open(planmod.AMEND)] if os.path.exists(planmod.AMEND) else []
     log_path = os.path.join(tdir, "test_access_log.jsonl")
     access = [json.loads(l) for l in open(log_path)] if os.path.exists(log_path) else []

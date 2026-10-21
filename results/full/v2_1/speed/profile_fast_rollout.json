@@ -1,0 +1,20 @@
+{
+ "tier_label": "diagnostic",
+ "flags": {
+  "fast_rollout": true
+ },
+ "single": {
+  "sps": 2218.4500630255097,
+  "wall": 44.31202006340027,
+  "profile": {
+   "validation": 0.6815935919994445,
+   "rollout_forward": 6.54750303095625,
+   "env_step": 2.752505385989025,
+   "obs_build": 1.9481048360321438,
+   "gae": 0.3040162999968743,
+   "update": 28.219088416998602
+  },
+  "profile_total": 43.261709451675415,
+  "best_val": 105.55714285714286
+ }
+}

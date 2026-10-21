@@ -188,3 +188,13 @@ footer { border-top: 1px solid var(--border); padding: 22px 20px; color: var(--m
 }
 .stepline { margin-top: 6px; }
 @media (max-width: 760px) { header.site { position: static; } }
+
+/* v2.1: imitation-ceiling bars (Probes) and ledger tier labels */
+.bars { display: grid; gap: .45rem; margin: .5rem 0 1rem; }
+.barrow { display: grid; grid-template-columns: minmax(10rem, 16rem) 1fr 3rem; gap: .6rem; align-items: center; font-size: .86rem; }
+.bartrack { background: var(--surface-2, rgba(127,127,127,.18)); border-radius: 4px; height: .7rem; overflow: hidden; }
+.bar { height: 100%; background: var(--c2, #0072b2); border-radius: 4px; }
+.barval { font-variant-numeric: tabular-nums; text-align: right; }
+td.tier { font-size: .78rem; text-transform: uppercase; letter-spacing: .04em; white-space: nowrap; }
+td.tier.confirmatory { font-weight: 700; } td.tier.diagnostic { opacity: .75; }
+@media (max-width: 560px) { .barrow { grid-template-columns: 1fr 3rem; } .barrow .bartrack { grid-column: 1 / -1; order: 3; } }

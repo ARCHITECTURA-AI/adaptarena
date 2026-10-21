@@ -40,13 +40,13 @@ class EpisodeResult:
 
 def evaluate(policy, specs: Sequence[ScenarioSpec], action_seeds: Optional[Sequence[int]] = None,
              env_config: Optional[EnvConfig] = None, deterministic: bool = True,
-             record_actions: bool = False, max_batch: int = 256) -> List[EpisodeResult]:
+             record_actions: bool = False, max_batch: int = 256, env_factory=None) -> List[EpisodeResult]:
     """policy: a policy name ("random", ...), a `Policy` instance factory, or a torch model."""
     results: List[EpisodeResult] = []
     seeds = list(action_seeds) if action_seeds is not None else list(range(len(specs)))
     for lo in range(0, len(specs), max_batch):
         results += _evaluate_chunk(policy, list(specs[lo:lo + max_batch]), seeds[lo:lo + max_batch],
-                                   env_config, deterministic, record_actions)
+                                   env_config, deterministic, record_actions, env_factory)
     return results
 
 
@@ -54,10 +54,10 @@ def _is_torch(policy) -> bool:
     return hasattr(policy, "sequence") and hasattr(policy, "parameters")
 
 
-def _evaluate_chunk(policy, specs, seeds, env_config, deterministic, record_actions):
+def _evaluate_chunk(policy, specs, seeds, env_config, deterministic, record_actions, env_factory=None):
     import torch
     n = len(specs)
-    env = BatchEnv(n, env_config)
+    env = (env_factory or BatchEnv)(n, env_config)
     scs = [build_scenario(s) for s in specs]
     env.reset_all(scs)
     live = np.ones(n, dtype=bool)
@@ -82,7 +82,7 @@ def _evaluate_chunk(policy, specs, seeds, env_config, deterministic, record_acti
     while live.any():
         obs = env.observe()
         if torch_mode:
-            flat = torch.from_numpy(np.concatenate([obs["grid"].reshape(n, -1), obs["stats"]], axis=1))
+            flat = torch.from_numpy(env.flat_obs() if env_factory else np.concatenate([obs["grid"].reshape(n, -1), obs["stats"]], axis=1))
             with torch.no_grad():
                 logits, _, state = policy.step(flat, state, first)
             if deterministic:

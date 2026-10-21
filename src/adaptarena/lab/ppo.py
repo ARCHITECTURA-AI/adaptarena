@@ -51,6 +51,65 @@ class PPOConfig:
     seed: int = 0
     eval_every: int = 25  # updates between validation evaluations
     save_fracs: tuple = (0.0, 0.1, 0.5, 1.0)
+    # v2.1 flags: every one defaults to v2 behavior
+    profile: bool = False          # time each phase of the loop (diagnostic; no effect on what is computed)
+    fast_rollout: bool = False     # same math: inference_mode, preallocated tensors, no Categorical objects in the rollout loop
+    normalize_returns: bool = False  # divide rewards by the running std of the discounted return (v2.1 gamma re-run)
+    return_clip: float = 10.0
+
+
+class RunningMeanStd:
+    """Running mean and variance of a stream (parallel/Welford update), as used by return normalization."""
+
+    def __init__(self):
+        self.mean, self.var, self.count = 0.0, 1.0, 1e-4
+
+    def update(self, x: np.ndarray) -> None:
+        bm, bv, bc = float(np.mean(x)), float(np.var(x)), x.size
+        d = bm - self.mean
+        tot = self.count + bc
+        self.mean += d * bc / tot
+        m2 = self.var * self.count + bv * bc + d * d * self.count * bc / tot
+        self.var, self.count = m2 / tot, tot
+
+
+class ReturnNormalizer:
+    """Divides rewards by the running std of the discounted return (the standard PPO reward scaling).
+
+    One accumulator per environment: acc = gamma * acc + r, the running variance is updated with every accumulator
+    value, and the accumulator of an environment is zeroed when its episode ends. The scaled reward is clipped.
+    """
+
+    def __init__(self, n: int, gamma: float, clip: float = 10.0):
+        self.acc, self.gamma, self.clip, self.rms = np.zeros(n), gamma, clip, RunningMeanStd()
+
+    def __call__(self, reward: np.ndarray, done: np.ndarray) -> np.ndarray:
+        self.acc = self.acc * self.gamma + reward
+        self.rms.update(self.acc)
+        out = np.clip(reward / np.sqrt(self.rms.var + 1e-8), -self.clip, self.clip)
+        self.acc = self.acc * (1.0 - done)
+        return out
+
+
+class _Timer:
+    """Wall-time accumulators per loop phase; a no-op unless `profile` is on."""
+
+    def __init__(self, on: bool):
+        self.on, self.acc = on, {}
+
+    def __call__(self, name):
+        import contextlib
+        if not self.on:
+            return contextlib.nullcontext()
+        outer = self
+
+        class _C:
+            def __enter__(self_):
+                self_.t0 = time.perf_counter()
+
+            def __exit__(self_, *a):
+                outer.acc[name] = outer.acc.get(name, 0.0) + time.perf_counter() - self_.t0
+        return _C()
 
 
 # --------------------------------------------------------------------------- core maths
@@ -137,7 +196,8 @@ class TrainResult:
 
 
 def train(model: nn.Module, cfg: PPOConfig, source: ScenarioSource, env_config: EnvConfig,
-          val_specs: Sequence[ScenarioSpec], out_dir: str, log: Optional[Callable] = None) -> TrainResult:
+          val_specs: Sequence[ScenarioSpec], out_dir: str, log: Optional[Callable] = None,
+          env_factory: Optional[Callable] = None, eval_env_factory: Optional[Callable] = None) -> TrainResult:
     os.makedirs(out_dir, exist_ok=True)
     torch.manual_seed(cfg.seed)
     np.random.seed(cfg.seed)
@@ -147,7 +207,8 @@ def train(model: nn.Module, cfg: PPOConfig, source: ScenarioSource, env_config: 
     n_updates = max(1, cfg.total_steps // batch_size)
     opt = torch.optim.Adam(model.parameters(), lr=cfg.lr, eps=1e-5)
 
-    env = BatchEnv(n, env_config)
+    env = (env_factory or BatchEnv)(n, env_config)
+    tm = _Timer(cfg.profile)
     metas = []
     for i in range(n):
         spec, meta = source.sample(i)
@@ -156,7 +217,8 @@ def train(model: nn.Module, cfg: PPOConfig, source: ScenarioSource, env_config: 
     pvl_acc = np.zeros(n)
     pvl_cnt = np.zeros(n)
 
-    obs_buf = torch.zeros(T, n, P.OBS_DIM)
+    obs_dim = env.flat_obs().shape[1]
+    obs_buf = torch.zeros(T, n, obs_dim)
     act_buf = torch.zeros(T, n, dtype=torch.long)
     logp_buf = torch.zeros(T, n)
     rew_buf = torch.zeros(T, n)
@@ -167,6 +229,7 @@ def train(model: nn.Module, cfg: PPOConfig, source: ScenarioSource, env_config: 
     state = model.initial_state(n)
     first = torch.ones(n)
     obs = torch.from_numpy(env.flat_obs())
+    ret_norm = ReturnNormalizer(n, cfg.gamma, cfg.return_clip)
 
     rows_f = open(os.path.join(out_dir, "train_log.csv"), "w", newline="")
     val_f = open(os.path.join(out_dir, "val_log.csv"), "w", newline="")
@@ -179,7 +242,8 @@ def train(model: nn.Module, cfg: PPOConfig, source: ScenarioSource, env_config: 
 
     def validate(update):
         nonlocal best_val, best_update, last_val, val_w
-        res = evaluate(model, val_specs, val_seeds, env_config, deterministic=True)
+        with tm("validation"):
+            res = evaluate(model, val_specs, val_seeds, env_config, deterministic=True, env_factory=eval_env_factory)
         last_val = float(survival_array(res).mean())
         if val_w is None:
             val_w = csv.writer(val_f)
@@ -204,18 +268,27 @@ def train(model: nn.Module, cfg: PPOConfig, source: ScenarioSource, env_config: 
             if model.recurrent and t % seq == 0:
                 chunk_states.append(tuple(s.clone() for s in state))
             obs_buf[t], first_buf[t] = obs, first
-            with torch.no_grad():
-                logits, value, state = model.step(obs, state, first)
-                dist = torch.distributions.Categorical(logits=logits)
-                action = dist.sample()
-                logp = dist.log_prob(action)
-            val_buf[t], act_buf[t], logp_buf[t] = value, action, logp
-            reward, term, trunc = env.step(action.numpy())
+            with tm("rollout_forward"):
+                with (torch.inference_mode() if cfg.fast_rollout else torch.no_grad()):
+                    logits, value, state = model.step(obs, state, first)
+                    if cfg.fast_rollout:  # same distribution, no Categorical object per step
+                        action = torch.multinomial(torch.softmax(logits, -1), 1).squeeze(-1)
+                        logp = torch.log_softmax(logits, -1).gather(-1, action.unsqueeze(-1)).squeeze(-1)
+                    else:
+                        dist = torch.distributions.Categorical(logits=logits)
+                        action = dist.sample()
+                        logp = dist.log_prob(action)
+                val_buf[t], act_buf[t], logp_buf[t] = value, action, logp
+            with tm("env_step"):
+                reward, term, trunc = env.step(action.numpy())
             reward = torch.from_numpy(reward) * cfg.reward_scale
             done_np = term | trunc
+            if cfg.normalize_returns:
+                reward = torch.from_numpy(ret_norm(reward.numpy().astype(np.float64), done_np.astype(np.float64))).float()
             if trunc.any() and cfg.bootstrap_timeout:
                 with torch.no_grad():
-                    fobs = torch.from_numpy(env.flat_obs())
+                    with tm("obs_build"):
+                        fobs = torch.from_numpy(env.flat_obs())
                     _, vfin, _ = model.step(fobs, state, torch.zeros(n))
                 reward = reward + cfg.gamma * vfin * torch.from_numpy(trunc.astype(np.float32))
             rew_buf[t] = reward
@@ -226,60 +299,63 @@ def train(model: nn.Module, cfg: PPOConfig, source: ScenarioSource, env_config: 
                 spec, meta = source.sample(int(i))
                 env.reset_env(int(i), spec)
                 metas[i] = meta
-            obs = torch.from_numpy(env.flat_obs())
+            with tm("obs_build"):
+                obs = torch.from_numpy(env.flat_obs())
             first = torch.from_numpy(done_np.astype(np.float32))
 
         with torch.no_grad():
             _, next_value, _ = model.step(obs, state, first)
-        adv, ret = compute_gae(rew_buf, val_buf, done_buf, next_value, cfg.gamma, cfg.gae_lambda)
+        with tm("gae"):
+            adv, ret = compute_gae(rew_buf, val_buf, done_buf, next_value, cfg.gamma, cfg.gae_lambda)
 
         # -- optimisation
-        stats_acc = {}
-        if model.recurrent:
-            C = seq
-            n_chunks = T // C
-            assert T % C == 0
-            def chunk(x):  # (T, n, ...) -> (C, n_chunks * n, ...), batch index = chunk * n + env
-                x = x.reshape(n_chunks, C, n, *x.shape[2:]).transpose(0, 1)
-                return x.reshape(C, n_chunks * n, *x.shape[3:])
-            c_obs, c_act, c_logp, c_adv, c_ret, c_first = map(
-                chunk, (obs_buf, act_buf, logp_buf, adv, ret, first_buf))
-            c_state = model.cat_states(chunk_states)
-            B = n_chunks * n
-            per_mb = max(1, B // cfg.n_minibatches)
-            for _ in range(cfg.epochs):
-                perm = np.random.permutation(B)
-                for lo in range(0, B, per_mb):
-                    idx = torch.as_tensor(perm[lo:lo + per_mb])
-                    logits, values, _ = model.sequence(c_obs[:, idx], model.select_state(c_state, idx),
-                                                       c_first[:, idx])
-                    loss, st = ppo_loss(logits.reshape(-1, P.N_ACTIONS), values.reshape(-1),
-                                        c_act[:, idx].reshape(-1), c_logp[:, idx].reshape(-1),
-                                        c_adv[:, idx].reshape(-1), c_ret[:, idx].reshape(-1), cfg)
-                    opt.zero_grad()
-                    loss.backward()
-                    gn = nn.utils.clip_grad_norm_(model.parameters(), cfg.max_grad_norm)
-                    opt.step()
-                    st["grad_norm"] = float(gn)
-                    for k, v in st.items():
-                        stats_acc.setdefault(k, []).append(v)
-        else:
-            flat = lambda x: x.reshape(batch_size, *x.shape[2:])
-            b_obs, b_act, b_logp, b_adv, b_ret = map(flat, (obs_buf, act_buf, logp_buf, adv, ret))
-            mb = batch_size // cfg.n_minibatches
-            for _ in range(cfg.epochs):
-                perm = np.random.permutation(batch_size)
-                for lo in range(0, batch_size, mb):
-                    idx = torch.as_tensor(perm[lo:lo + mb])
-                    logits, values, _ = model.sequence(b_obs[idx], None, None)
-                    loss, st = ppo_loss(logits, values, b_act[idx], b_logp[idx], b_adv[idx], b_ret[idx], cfg)
-                    opt.zero_grad()
-                    loss.backward()
-                    gn = nn.utils.clip_grad_norm_(model.parameters(), cfg.max_grad_norm)
-                    opt.step()
-                    st["grad_norm"] = float(gn)
-                    for k, v in st.items():
-                        stats_acc.setdefault(k, []).append(v)
+        with tm("update"):
+            stats_acc = {}
+            if model.recurrent:
+                C = seq
+                n_chunks = T // C
+                assert T % C == 0
+                def chunk(x):  # (T, n, ...) -> (C, n_chunks * n, ...), batch index = chunk * n + env
+                    x = x.reshape(n_chunks, C, n, *x.shape[2:]).transpose(0, 1)
+                    return x.reshape(C, n_chunks * n, *x.shape[3:])
+                c_obs, c_act, c_logp, c_adv, c_ret, c_first = map(
+                    chunk, (obs_buf, act_buf, logp_buf, adv, ret, first_buf))
+                c_state = model.cat_states(chunk_states)
+                B = n_chunks * n
+                per_mb = max(1, B // cfg.n_minibatches)
+                for _ in range(cfg.epochs):
+                    perm = np.random.permutation(B)
+                    for lo in range(0, B, per_mb):
+                        idx = torch.as_tensor(perm[lo:lo + per_mb])
+                        logits, values, _ = model.sequence(c_obs[:, idx], model.select_state(c_state, idx),
+                                                           c_first[:, idx])
+                        loss, st = ppo_loss(logits.reshape(-1, P.N_ACTIONS), values.reshape(-1),
+                                            c_act[:, idx].reshape(-1), c_logp[:, idx].reshape(-1),
+                                            c_adv[:, idx].reshape(-1), c_ret[:, idx].reshape(-1), cfg)
+                        opt.zero_grad()
+                        loss.backward()
+                        gn = nn.utils.clip_grad_norm_(model.parameters(), cfg.max_grad_norm)
+                        opt.step()
+                        st["grad_norm"] = float(gn)
+                        for k, v in st.items():
+                            stats_acc.setdefault(k, []).append(v)
+            else:
+                flat = lambda x: x.reshape(batch_size, *x.shape[2:])
+                b_obs, b_act, b_logp, b_adv, b_ret = map(flat, (obs_buf, act_buf, logp_buf, adv, ret))
+                mb = batch_size // cfg.n_minibatches
+                for _ in range(cfg.epochs):
+                    perm = np.random.permutation(batch_size)
+                    for lo in range(0, batch_size, mb):
+                        idx = torch.as_tensor(perm[lo:lo + mb])
+                        logits, values, _ = model.sequence(b_obs[idx], None, None)
+                        loss, st = ppo_loss(logits, values, b_act[idx], b_logp[idx], b_adv[idx], b_ret[idx], cfg)
+                        opt.zero_grad()
+                        loss.backward()
+                        gn = nn.utils.clip_grad_norm_(model.parameters(), cfg.max_grad_norm)
+                        opt.step()
+                        st["grad_norm"] = float(gn)
+                        for k, v in st.items():
+                            stats_acc.setdefault(k, []).append(v)
 
         # -- scenario-source bookkeeping (positive value loss per finished episode, then scores)
         if source.needs_pvl:
@@ -328,8 +404,12 @@ def train(model: nn.Module, cfg: PPOConfig, source: ScenarioSource, env_config: 
     rows_f.close()
     val_f.close()
     wall = time.time() - t_start
+    extra = source.stats()
+    if cfg.profile:
+        extra["profile_seconds"] = dict(tm.acc)
+        extra["profile_total_seconds"] = wall
     result = TrainResult(out_dir=out_dir, best_val=best_val, best_update=best_update, final_val=last_val,
-                         steps=steps, wall_seconds=wall, sps=steps / wall, extra=source.stats())
+                         steps=steps, wall_seconds=wall, sps=steps / wall, extra=extra)
     with open(os.path.join(out_dir, "train_result.json"), "w") as f:
         json.dump({**asdict(result), "config": asdict(cfg), "model": model.name,
                    "n_params": sum(p.numel() for p in model.parameters())}, f, indent=1, default=str)

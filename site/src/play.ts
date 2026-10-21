@@ -3,7 +3,7 @@ import { drawCodes } from "./draw";
 import { el, getJSON, Replay, reducedMotion, STAT_MAX } from "./types";
 
 interface Challenge { id: string; label: string; spec: Record<string, unknown>; rungs: Record<string, number>; layout_hash: string }
-interface Ladder { challenges: Challenge[]; rung_labels: Record<string, string>; wheel: string; pyodide: string }
+interface Ladder { challenges: Challenge[]; rung_labels: Record<string, string>; wheel: string; pyodide: string; rung_status?: Record<string, string> }
 interface Frame { cells: number[]; energy: number; hyd: number; cold: number; t: number; done: boolean; alive: boolean; survived: number; cause: string; valid: number }
 
 const GLUE = `
@@ -169,6 +169,7 @@ export async function initPlay(root: HTMLElement): Promise<void> {
       bars.append(row);
     });
     result.append(bars);
+    if (ladder.rung_status?.ppo_ssm === "not run") result.append(el("p", { class: "note" }, "Rung 8 (small SSM policy): not run yet, so it has no row on this ladder."));
     const best = rows.filter((r) => !r.you && r.v < you).length;
     if (rows.some((r) => !r.you && r.v > you && /baseline|script|random/i.test(r.name))) result.append(el("p", { class: "note" }, "Honesty rule: when a baseline beats a learned policy, this page shows it. Nothing is hidden or rounded."));
     const reveal = el("button", { type: "button", class: "btn primary" }, "Reveal the full map and replay my run (observer view)");

@@ -1,0 +1,42 @@
+{
+ "out_dir": "/home/user/adaptarena/results/full/v2_1/diagnose/mapfed/seed_1",
+ "best_val": 247.18571428571428,
+ "best_update": 950,
+ "final_val": 206.5142857142857,
+ "steps": 1998848,
+ "wall_seconds": 1503.3057374954224,
+ "sps": 1329.6350503725039,
+ "extra": {},
+ "config": {
+  "total_steps": 2000000,
+  "n_envs": 8,
+  "n_steps": 256,
+  "epochs": 10,
+  "n_minibatches": 4,
+  "seq_len": 64,
+  "lr": 0.001,
+  "gamma": 0.99,
+  "gae_lambda": 0.95,
+  "clip": 0.2,
+  "ent_coef": 0.003,
+  "vf_coef": 0.5,
+  "max_grad_norm": 0.5,
+  "anneal_lr": true,
+  "bootstrap_timeout": true,
+  "reward_scale": 0.01,
+  "seed": 1,
+  "eval_every": 25,
+  "save_fracs": [
+   0.0,
+   0.1,
+   0.5,
+   1.0
+  ],
+  "profile": false,
+  "fast_rollout": false,
+  "normalize_returns": false,
+  "return_clip": 10.0
+ },
+ "model": "ppo_ff",
+ "n_params": 529031
+}

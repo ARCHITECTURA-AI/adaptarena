@@ -1,0 +1,6 @@
+{
+ "tier_label": "exploratory",
+ "status": "not run (cut for compute)",
+ "reason": "Plan cut order puts SSM and int8 early. Measured SSM training speed was about 95 steps/s per job on the named 4-core Xeon (51,200 steps in about 9 minutes). The stop-rule tuning pass (3 learning rates x 3 seeds x 500k) alone needs about 4.5 hours, and 5 seeds at 2M about 6 hours each, on top of the other queued stages. The LSTM, which is cheaper, stays near random level at these budgets (best validation survival about 110 steps), so a trained SSM was not expected. Rung 8 stays empty; nothing about the SSM is claimed.",
+ "summary": "cut for compute: SSM trained at about 95 steps/s per job on the named 4-core Xeon, so the stop-rule tuning pass alone needs about 4.5 hours"
+}

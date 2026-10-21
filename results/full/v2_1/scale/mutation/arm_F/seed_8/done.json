@@ -1,0 +1,17 @@
+{
+ "wall": 952.1884393692017,
+ "job": {
+  "out_dir": "/home/user/adaptarena/results/full/v2_1/scale/mutation/arm_F/seed_8",
+  "arm": "F",
+  "model": "ff",
+  "seed": 8,
+  "steps": 2000000,
+  "ppo": {
+   "lr": 0.001,
+   "ent_coef": 0.003
+  },
+  "val_suite": "/home/user/adaptarena/results/full/suite_val.json"
+ },
+ "best_val": 225.85714285714286,
+ "best_update": 825
+}

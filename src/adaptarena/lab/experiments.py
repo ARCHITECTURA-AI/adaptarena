@@ -120,10 +120,12 @@ def train_job(job: dict) -> None:
         kw.setdefault("n_minibatches", 2)
     cfg = PPOConfig(**kw)
     torch.manual_seed(job["seed"])
-    model = make_model(job["model"])
+    from .memory import OBS_VARIANTS  # v2 observation by default; "v9-map" appends the hand-fed map channels
+    factory, obs_dim = OBS_VARIANTS[job.get("obs", "v2")]
+    model = make_model(job["model"], obs_dim=obs_dim)
     source = make_source(job.get("arm", "B"), job["seed"])
     t0 = time.time()
-    res = train(model, cfg, source, env_cfg, val_specs, out)
+    res = train(model, cfg, source, env_cfg, val_specs, out, env_factory=factory, eval_env_factory=factory)
     write_json(os.path.join(out, "done.json"), {"wall": time.time() - t0, "job": job,
                                                 "best_val": res.best_val, "best_update": res.best_update})
 
@@ -131,8 +133,10 @@ def train_job(job: dict) -> None:
 def load_model(run_dir: str, kind: str, which: str = "best"):
     import torch
     from .models import make_model
-    m = make_model(kind)
-    m.load_state_dict(torch.load(os.path.join(run_dir, f"model_{which}.pt"), map_location="cpu"))
+    sd = torch.load(os.path.join(run_dir, f"model_{which}.pt"), map_location="cpu")
+    first = next(k for k in ("actor.0.weight", "enc.weight") if k in sd)  # input width: v2 observation or obs-v9-map
+    m = make_model(kind, obs_dim=int(sd[first].shape[1]))
+    m.load_state_dict(sd)
     m.eval()
     return m
 
@@ -533,10 +537,12 @@ def policy_zoo(tdir: str, tier: dict, include_memory: bool = True, max_seeds: Op
                  "reactive_script": {"rung": 2, "kind": "script", "policies": ["reactive_script"]},
                  "memory_script": {"rung": 3, "kind": "script", "policies": ["memory_script"]}}
     seeds = range(tier["seeds"] if max_seeds is None else min(max_seeds, tier["seeds"]))
-    for arm in ("B", "D"):
+    v21 = os.path.join(tdir, "v2_1")
+    for arm in ("B", "D", "E", "Eprime"):  # B and D are v2 headline runs; E and E-prime are the v2.1 mutation arms
         ms = []
         for s in seeds:
-            d = os.path.join(tdir, "headline", f"arm_{arm}", f"seed_{s}")
+            d = (os.path.join(tdir, "headline", f"arm_{arm}", f"seed_{s}") if arm in ("B", "D")
+                 else os.path.join(v21, "scale", "mutation", f"arm_{arm}", f"seed_{s}"))
             if os.path.exists(os.path.join(d, "model_best.pt")):
                 ms.append(load_model(d, "ff"))
         if ms:
@@ -548,8 +554,20 @@ def policy_zoo(tdir: str, tier: dict, include_memory: bool = True, max_seeds: Op
                 d = os.path.join(tdir, "memory", kind, "default", f"seed_{s}")
                 if os.path.exists(os.path.join(d, "model_best.pt")):
                     ms.append(load_model(d, kind))
+            if kind == "ssm":  # v2.1 trained the SSM rung (if it trained at all)
+                for s in range(tier.get("ssm_seeds", 0)):
+                    d = os.path.join(v21, "ssm_int8", "ssm", "final", f"seed_{s}")
+                    if os.path.exists(os.path.join(d, "model_best.pt")):
+                        ms.append(load_model(d, "ssm"))
             if ms:
                 zoo[f"ppo_{kind}"] = {"rung": rung, "kind": "model", "policies": ms}
+        ms = []
+        for s in range(10):  # the retuned LSTM (v2.1 Phase 4.3) sits next to the v2 default LSTM on rung 7
+            d = os.path.join(v21, "diagnose", "lstm_final", f"seed_{s}")
+            if os.path.exists(os.path.join(d, "model_best.pt")):
+                ms.append(load_model(d, "lstm"))
+        if ms:
+            zoo["ppo_lstm_retuned"] = {"rung": 7, "kind": "model", "policies": ms}
     return zoo
 
 

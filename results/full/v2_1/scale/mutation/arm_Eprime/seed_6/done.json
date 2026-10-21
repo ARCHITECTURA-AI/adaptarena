@@ -1,0 +1,17 @@
+{
+ "wall": 1066.6320488452911,
+ "job": {
+  "out_dir": "/home/user/adaptarena/results/full/v2_1/scale/mutation/arm_Eprime/seed_6",
+  "arm": "Eprime",
+  "model": "ff",
+  "seed": 6,
+  "steps": 2000000,
+  "ppo": {
+   "lr": 0.001,
+   "ent_coef": 0.003
+  },
+  "val_suite": "/home/user/adaptarena/results/full/suite_val.json"
+ },
+ "best_val": 203.8,
+ "best_update": 625
+}

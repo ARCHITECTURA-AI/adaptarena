@@ -230,3 +230,6 @@ results/**/export/
 site/assets/app.js
 results/smoke/
 results/dev/
+
+# v2.1 imitation datasets (regenerable, large)
+results/*/v2_1/diagnose/data/

@@ -1,0 +1,6 @@
+{
+ "tier_label": "exploratory",
+ "status": "20M budget points not run (cut for compute)",
+ "reason": "The plan's cut order puts the 20M points first. After a worker restart the host trained at about 720 steps/s per job (512,000 steps in 11.9 minutes with 4 jobs in parallel) against about 2,200 earlier, so one 20M job needs about 7.7 hours and the six jobs about 15 hours. The sweep is reported at 2M and 8M only; the outcome row is selected by the two-budget version of the rule, and no statement about 20M is made.",
+ "summary": "The 20M budget points were not run (cut for compute: about 720 steps/s per job after a host change, so one 20M job needs about 7.7 hours). The sweep is reported at 2M and 8M only."
+}

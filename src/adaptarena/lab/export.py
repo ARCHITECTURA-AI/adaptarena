@@ -14,6 +14,7 @@ import os
 import shutil
 from typing import List
 
+import numpy as np
 import yaml
 
 from . import plan as planmod
@@ -135,8 +136,10 @@ CARD = """# Model card: {name}
 - **Training**: arm {arm} ({arm_name}), seed {seed}, {steps:,} transitions, checkpoint = highest mean validation survival (update {best_update}).
 - **Weights**: `model.pt` (PyTorch `state_dict`), SHA-256 `{sha}`.
 - **Environment**: `AdaptArena-Survival-v1`, observation {obs}.
+- **Probes**: they show behavior and input sensitivity, not reasoning.
 - **Intended use**: reproducing the published benchmark and exploring the site's probes. Frozen policy: it does not learn at inference time.
-- **Result on the locked test suite**: ladder-normalised aggregate IQM for this arm {iqm}.
+- **Result on the locked test suite**: ladder-normalised aggregate IQM for this {unit} {iqm}. IQMs are arm-level (over all seeds of the arm), not this seed's score.
+- **Seed**: seed 0 was fixed in advance as the released checkpoint, not picked for its score.
 - **Limitations**: trained and evaluated on one small custom environment; behaviour outside the stated distributions is not characterised; probes show behaviour, not reasoning.
 - **Config hash**: `{cfg_hash}`; analysis plan `{plan}`.
 """
@@ -162,13 +165,94 @@ def release(tier_name: str) -> List[str]:
         os.makedirs(dst, exist_ok=True)
         shutil.copy(w, os.path.join(dst, "model.pt"))
         cfg_hash = hashlib.sha256(json.dumps(tr["config"], sort_keys=True).encode()).hexdigest()[:16]
-        iqm = "n/a"
+        iqm, unit = "n/a", "arm"
         if hl and name.startswith("ppo_ff"):
             a = hl["per_arm"][arm]["aggregate_iqm"]
             iqm = f"{a['iqm']:.3f} [{a['lo']:.3f}, {a['hi']:.3f}]"
+        elif name.startswith("ppo_lstm"):
+            from . import stats as S
+            mp = os.path.join(tdir, "memory", "memory.json")
+            if os.path.exists(mp):
+                raw = json.load(open(mp))["raw_scores"]["lstm"]
+                a = S.iqm_with_ci({c: np.array(v) for c, v in raw.items()})
+                iqm, unit = f"{a['iqm']:.3f} [{a['lo']:.3f}, {a['hi']:.3f}] (5 seeds, 7 conditions, locked test suite)", "arm"
         open(os.path.join(dst, "model_card.md"), "w").write(CARD.format(
             name=name, model=tr["model"], n_params=tr["n_params"], rung=7 if "lstm" in name else 5, arm=arm, arm_name=ARMS[arm],
-            seed=0, steps=tr["steps"], best_update=tr["best_update"], sha=sha256(w), obs="obs-v9", iqm=iqm,
+            seed=0, unit=unit, steps=tr["steps"], best_update=tr["best_update"], sha=sha256(w), obs="obs-v9", iqm=iqm,
             cfg_hash=cfg_hash, plan=plan_hash[:16]))
         made.append(dst)
+    made += release_v21(tier_name)
+    return made
+
+
+CARD_V21 = """# Model card: {name}
+
+- **Policy**: {model} ({n_params:,} parameters), own PPO implementation, rung {rung} of the ladder. Added in v2.1.
+- **Training**: {train}
+- **Weights**: `{weights}` (PyTorch `state_dict`{quant}), SHA-256 `{sha}`.
+- **Environment**: `AdaptArena-Survival-v1`, observation obs-v9.
+- **Result**: {result}
+- **Seed**: seed 0 was fixed in advance as the released checkpoint, not picked for its score.
+- **Limitations**: trained and evaluated on one small custom environment; probes show behaviour, not reasoning; {extra}
+- **Analysis plan**: `analysis_plan_v2_1.yaml` (SHA-256 `{plan}`); tier label: {tier}.
+"""
+
+
+def release_v21(tier_name: str) -> List[str]:
+    """Checkpoints added by v2.1: the best mutation arm, the retuned LSTM, and int8 versions of two policies (with hashes)."""
+    import torch
+    from .experiments import load_model
+    from .models import count_params
+    tdir = tier_dir(tier_name)
+    v = os.path.join(tdir, "v2_1")
+    plan21 = open(planmod.HASH_V2_1).read().strip()
+    made = []
+
+    def j(*p):
+        f = os.path.join(*p)
+        return json.load(open(f)) if os.path.exists(f) else None
+    mu, lf, q = j(v, "scale", "mutation.json"), j(v, "diagnose", "lstm_final.json"), j(v, "ssm_int8", "int8.json")
+    items = []
+    if mu:
+        best = max(("E", "Eprime", "F"), key=lambda a: mu["arms"][a]["aggregate_iqm"]["iqm"])
+        a = mu["arms"][best]["aggregate_iqm"]
+        items.append((f"ppo_ff_arm{best}_seed0", os.path.join(v, "scale", "mutation", f"arm_{best}", "seed_0"), "ff", 5,
+                      f"mutation arm {best} (the best of E, E-prime, F by aggregate IQM), seed 0, {mu['steps']:,} transitions",
+                      f"fresh-suite ladder-normalised aggregate IQM for this arm {a['iqm']:.3f} [{a['lo']:.3f}, {a['hi']:.3f}] ({mu['seeds']} seeds, 7 conditions); "
+                      f"E minus B {mu['comparisons']['E_vs_B']['iqm_difference']['diff']:+.3f}: {mu['comparisons']['E_vs_B']['status']}",
+                      "it did not beat uniform randomization (arm B), so it is released as a record, not as a better policy", "confirmatory (E vs B), exploratory otherwise"))
+    if lf:
+        a = lf["suite_val_s1.json"]["lstm_retuned"]["iqm"]
+        items.append(("ppo_lstm_retuned_seed0", os.path.join(v, "diagnose", "lstm_final", "seed_0"), "lstm", 7,
+                      f"retuned LSTM config {lf['config']}, seed 0, {lf['steps']:,} transitions ({lf['seeds']} seeds trained)",
+                      f"validation-suite (not used for selection) aggregate IQM {a['iqm']:.3f} [{a['lo']:.3f}, {a['hi']:.3f}] vs feedforward arm B "
+                      f"{lf['suite_val_s1.json']['ff_arm_B']['iqm']['iqm']:.3f}", "it stays far below the feedforward policy and near random level", "exploratory"))
+    for name, d, kind, rung, train, result, extra, tier in items:
+        w = os.path.join(d, "model_best.pt")
+        if not os.path.exists(w):
+            continue
+        dst = os.path.join(REPO, "releases", name)
+        os.makedirs(dst, exist_ok=True)
+        shutil.copy(w, os.path.join(dst, "model.pt"))
+        m = load_model(d, kind)
+        open(os.path.join(dst, "model_card.md"), "w").write(CARD_V21.format(
+            name=name, model=kind, n_params=count_params(m), rung=rung, train=train, weights="model.pt", quant="", sha=sha256(w),
+            result=result, extra=extra, plan=plan21[:16], tier=tier))
+        made.append(dst)
+        if q and kind in ("ff", "lstm"):  # int8 twin of the same checkpoint
+            from .phase5b import quantize
+            r = q["rungs"].get("ppo_ff" if kind == "ff" else "ppo_lstm")
+            if r:
+                qd = os.path.join(REPO, "releases", name + "_int8")
+                os.makedirs(qd, exist_ok=True)
+                torch.save(quantize(m).state_dict(), os.path.join(qd, "model_int8.pt"))
+                open(os.path.join(qd, "model_card.md"), "w").write(CARD_V21.format(
+                    name=name + "_int8", model=kind + " (dynamic int8)", n_params=count_params(m), rung=rung,
+                    train=f"post-training dynamic int8 quantization of `{name}` (Linear and LSTMCell weights int8; activations and recurrent state float32)",
+                    weights="model_int8.pt", quant=", quantized", sha=sha256(os.path.join(qd, "model_int8.pt")),
+                    result=f"retention over float32 on suite_val_s1: {r['retention']['ratio']:.3f} [{r['retention']['lo']:.3f}, {r['retention']['hi']:.3f}] "
+                           f"(float32 {r['retention']['float32_iqm']:.3f}, int8 {r['retention']['int8_iqm']:.3f}); action agreement {r['action_agreement_mean']:.3f}; "
+                           f"size {r['size_fp32_bytes'] / 1e3:.0f} kB to {r['size_int8_bytes'] / 1e3:.0f} kB",
+                    extra="measured on " + q["hardware"] + " only; no edge-device or energy claim", plan=plan21[:16], tier="exploratory"))
+                made.append(qd)
     return made

@@ -1,0 +1,401 @@
+{
+ "tier_label": "exploratory",
+ "suite": "suite_val.json",
+ "steps": 2000000,
+ "seeds": 5,
+ "script_mean": 0.9539760322629774,
+ "script_per_condition": {
+  "familiar": 1.0,
+  "unseen_layout": 1.0,
+  "scarce_food": 1.0,
+  "scarce_water": 0.921531100478469,
+  "higher_move_cost": 1.0,
+  "cold_snap": 0.9297085476365418,
+  "combined_shift": 0.8265925777258311
+ },
+ "ff_map": {
+  "mean": 0.44247730242328853,
+  "iqm": {
+   "iqm": 0.3845136791563393,
+   "lo": 0.34903500258998443,
+   "hi": 0.42303212033924126
+  },
+  "per_seed": [
+   {
+    "condition": "familiar",
+    "seed": 0,
+    "score": 1.0
+   },
+   {
+    "condition": "familiar",
+    "seed": 1,
+    "score": 0.9293799212598426
+   },
+   {
+    "condition": "familiar",
+    "seed": 2,
+    "score": 0.894108779436313
+   },
+   {
+    "condition": "familiar",
+    "seed": 3,
+    "score": 1.0
+   },
+   {
+    "condition": "familiar",
+    "seed": 4,
+    "score": 0.8830253199187921
+   },
+   {
+    "condition": "unseen_layout",
+    "seed": 0,
+    "score": 0.8179799833336061
+   },
+   {
+    "condition": "unseen_layout",
+    "seed": 1,
+    "score": 0.6864058795174923
+   },
+   {
+    "condition": "unseen_layout",
+    "seed": 2,
+    "score": 0.8007519601837473
+   },
+   {
+    "condition": "unseen_layout",
+    "seed": 3,
+    "score": 0.7166610998641155
+   },
+   {
+    "condition": "unseen_layout",
+    "seed": 4,
+    "score": 0.7008799318725276
+   },
+   {
+    "condition": "scarce_food",
+    "seed": 0,
+    "score": 0.21612285048016616
+   },
+   {
+    "condition": "scarce_food",
+    "seed": 1,
+    "score": 0.22581200188041123
+   },
+   {
+    "condition": "scarce_food",
+    "seed": 2,
+    "score": 0.29524557988949324
+   },
+   {
+    "condition": "scarce_food",
+    "seed": 3,
+    "score": 0.12300849852541924
+   },
+   {
+    "condition": "scarce_food",
+    "seed": 4,
+    "score": 0.19811785585850328
+   },
+   {
+    "condition": "scarce_water",
+    "seed": 0,
+    "score": 0.27793193138328126
+   },
+   {
+    "condition": "scarce_water",
+    "seed": 1,
+    "score": 0.22261241270497484
+   },
+   {
+    "condition": "scarce_water",
+    "seed": 2,
+    "score": 0.1676748652369041
+   },
+   {
+    "condition": "scarce_water",
+    "seed": 3,
+    "score": 0.3458354989457849
+   },
+   {
+    "condition": "scarce_water",
+    "seed": 4,
+    "score": 0.31213338817843683
+   },
+   {
+    "condition": "higher_move_cost",
+    "seed": 0,
+    "score": 0.5175621349368416
+   },
+   {
+    "condition": "higher_move_cost",
+    "seed": 1,
+    "score": 0.3742039697296714
+   },
+   {
+    "condition": "higher_move_cost",
+    "seed": 2,
+    "score": 0.3713346696710104
+   },
+   {
+    "condition": "higher_move_cost",
+    "seed": 3,
+    "score": 0.4295879217931132
+   },
+   {
+    "condition": "higher_move_cost",
+    "seed": 4,
+    "score": 0.4787209524127579
+   },
+   {
+    "condition": "cold_snap",
+    "seed": 0,
+    "score": 0.612383709734049
+   },
+   {
+    "condition": "cold_snap",
+    "seed": 1,
+    "score": 0.21332009303400795
+   },
+   {
+    "condition": "cold_snap",
+    "seed": 2,
+    "score": 0.37451846496129143
+   },
+   {
+    "condition": "cold_snap",
+    "seed": 3,
+    "score": 0.2884261059637564
+   },
+   {
+    "condition": "cold_snap",
+    "seed": 4,
+    "score": 0.3627224068813787
+   },
+   {
+    "condition": "combined_shift",
+    "seed": 0,
+    "score": 0.09164676879224273
+   },
+   {
+    "condition": "combined_shift",
+    "seed": 1,
+    "score": 0.11410093370143408
+   },
+   {
+    "condition": "combined_shift",
+    "seed": 2,
+    "score": 0.16524332913745673
+   },
+   {
+    "condition": "combined_shift",
+    "seed": 3,
+    "score": 0.17210356800647184
+   },
+   {
+    "condition": "combined_shift",
+    "seed": 4,
+    "score": 0.10714279758980245
+   }
+  ]
+ },
+ "ff_plain": {
+  "mean": 0.4213024212996891,
+  "iqm": {
+   "iqm": 0.3966003595969669,
+   "lo": 0.3598445337286644,
+   "hi": 0.4361505470797464
+  },
+  "per_seed": [
+   {
+    "condition": "familiar",
+    "seed": 0,
+    "score": 0.5209244970802347
+   },
+   {
+    "condition": "familiar",
+    "seed": 1,
+    "score": 0.9452950979816807
+   },
+   {
+    "condition": "familiar",
+    "seed": 2,
+    "score": 1.0
+   },
+   {
+    "condition": "familiar",
+    "seed": 3,
+    "score": 0.5012766823134988
+   },
+   {
+    "condition": "familiar",
+    "seed": 4,
+    "score": 1.0
+   },
+   {
+    "condition": "unseen_layout",
+    "seed": 0,
+    "score": 0.7143282709133679
+   },
+   {
+    "condition": "unseen_layout",
+    "seed": 1,
+    "score": 0.6926547192202348
+   },
+   {
+    "condition": "unseen_layout",
+    "seed": 2,
+    "score": 0.6257677578803922
+   },
+   {
+    "condition": "unseen_layout",
+    "seed": 3,
+    "score": 0.43408684153984733
+   },
+   {
+    "condition": "unseen_layout",
+    "seed": 4,
+    "score": 0.6281426808571874
+   },
+   {
+    "condition": "scarce_food",
+    "seed": 0,
+    "score": 0.17993315871100174
+   },
+   {
+    "condition": "scarce_food",
+    "seed": 1,
+    "score": 0.21298945257305252
+   },
+   {
+    "condition": "scarce_food",
+    "seed": 2,
+    "score": 0.2585869751813603
+   },
+   {
+    "condition": "scarce_food",
+    "seed": 3,
+    "score": 0.17711122729096435
+   },
+   {
+    "condition": "scarce_food",
+    "seed": 4,
+    "score": 0.13623823674035082
+   },
+   {
+    "condition": "scarce_water",
+    "seed": 0,
+    "score": 0.26889005774919295
+   },
+   {
+    "condition": "scarce_water",
+    "seed": 1,
+    "score": 0.396085980937264
+   },
+   {
+    "condition": "scarce_water",
+    "seed": 2,
+    "score": 0.30694663509136244
+   },
+   {
+    "condition": "scarce_water",
+    "seed": 3,
+    "score": 0.3558604268144011
+   },
+   {
+    "condition": "scarce_water",
+    "seed": 4,
+    "score": 0.2998780636894869
+   },
+   {
+    "condition": "higher_move_cost",
+    "seed": 0,
+    "score": 0.5858633999137224
+   },
+   {
+    "condition": "higher_move_cost",
+    "seed": 1,
+    "score": 0.46762529268618913
+   },
+   {
+    "condition": "higher_move_cost",
+    "seed": 2,
+    "score": 0.2822882241848631
+   },
+   {
+    "condition": "higher_move_cost",
+    "seed": 3,
+    "score": 0.48055153035390374
+   },
+   {
+    "condition": "higher_move_cost",
+    "seed": 4,
+    "score": 0.6186111389802111
+   },
+   {
+    "condition": "cold_snap",
+    "seed": 0,
+    "score": 0.4820267600967016
+   },
+   {
+    "condition": "cold_snap",
+    "seed": 1,
+    "score": 0.4406719127143453
+   },
+   {
+    "condition": "cold_snap",
+    "seed": 2,
+    "score": 0.2844223650027158
+   },
+   {
+    "condition": "cold_snap",
+    "seed": 3,
+    "score": 0.562244791358459
+   },
+   {
+    "condition": "cold_snap",
+    "seed": 4,
+    "score": 0.3941869430617696
+   },
+   {
+    "condition": "combined_shift",
+    "seed": 0,
+    "score": 0.133636087961973
+   },
+   {
+    "condition": "combined_shift",
+    "seed": 1,
+    "score": 0.061338834962798426
+   },
+   {
+    "condition": "combined_shift",
+    "seed": 2,
+    "score": 0.08255894624659443
+   },
+   {
+    "condition": "combined_shift",
+    "seed": 3,
+    "score": 0.12040169969507353
+   },
+   {
+    "condition": "combined_shift",
+    "seed": 4,
+    "score": 0.09416005570491605
+   }
+  ]
+ },
+ "lstm_default": {
+  "mean": 0.35779431834833586,
+  "iqm": {
+   "iqm": 0.2897500987119946,
+   "lo": 0.23517674777379252,
+   "hi": 0.347019471320635
+  }
+ },
+ "map_minus_plain": {
+  "diff": -0.01208668044062755,
+  "lo": -0.06542413845276007,
+  "hi": 0.0417775916301519
+ },
+ "map_fraction_of_script": 0.4638243388292099,
+ "note": "The map channels are food sites, water sites and known floor. No shelters exist in this environment."
+}

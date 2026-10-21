@@ -40,10 +40,10 @@ class FFPolicy(nn.Module):
     recurrent = False
     name = "ppo_ff"
 
-    def __init__(self, hidden=(256, 128)):
+    def __init__(self, hidden=(256, 128), obs_dim=OBS_DIM):
         super().__init__()
         def mlp():
-            return nn.Sequential(_init(nn.Linear(OBS_DIM, hidden[0])), nn.Tanh(),
+            return nn.Sequential(_init(nn.Linear(obs_dim, hidden[0])), nn.Tanh(),
                                  _init(nn.Linear(hidden[0], hidden[1])), nn.Tanh())
         self.actor, self.critic = mlp(), mlp()
         self.pi = _init(nn.Linear(hidden[1], N_ACTIONS), 0.01)
@@ -70,10 +70,10 @@ class LSTMPolicy(nn.Module):
     recurrent = True
     name = "ppo_lstm"
 
-    def __init__(self, enc=192, hidden=192):
+    def __init__(self, enc=192, hidden=192, obs_dim=OBS_DIM):
         super().__init__()
         self.hidden = hidden
-        self.enc = _init(nn.Linear(OBS_DIM, enc))
+        self.enc = _init(nn.Linear(obs_dim, enc))
         self.cell = nn.LSTMCell(enc, hidden)
         for n_, p in self.cell.named_parameters():
             if "bias" in n_:
@@ -124,12 +124,12 @@ class SSMPolicy(nn.Module):
     recurrent = True
     name = "ppo_ssm"
 
-    def __init__(self, d_model=192, d_state=16, expand=2, d_conv=4):
+    def __init__(self, d_model=208, d_state=16, expand=2, d_conv=4, obs_dim=OBS_DIM):  # 208: within 10% of the LSTM's parameter count
         super().__init__()
         self.d_model, self.d_state, self.d_conv = d_model, d_state, d_conv
         self.d_inner = d_model * expand
         self.dt_rank = max(4, d_model // 16)
-        self.enc = _init(nn.Linear(OBS_DIM, d_model))
+        self.enc = _init(nn.Linear(obs_dim, d_model))
         self.norm = nn.LayerNorm(d_model)
         self.in_proj = nn.Linear(d_model, 2 * self.d_inner)
         self.conv_w = nn.Parameter(torch.randn(self.d_inner, d_conv) * 0.2)
@@ -195,8 +195,8 @@ class SSMPolicy(nn.Module):
         return self.sequence(obs, state, first)
 
 
-def make_model(kind: str) -> nn.Module:
-    return {"ff": FFPolicy, "lstm": LSTMPolicy, "ssm": SSMPolicy}[kind]()
+def make_model(kind: str, obs_dim: int = OBS_DIM) -> nn.Module:
+    return {"ff": FFPolicy, "lstm": LSTMPolicy, "ssm": SSMPolicy}[kind](obs_dim=obs_dim)
 
 
 def clone_state(state):
