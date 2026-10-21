@@ -1,7 +1,7 @@
 {
   "name": "adaptarena-site",
   "private": true,
-  "version": "2.0.0",
+  "version": "2.1.0",
   "scripts": {
     "build": "esbuild src/main.ts --bundle --minify --target=es2020 --outfile=assets/app.js && tsc --noEmit -p .",
     "typecheck": "tsc --noEmit -p ."

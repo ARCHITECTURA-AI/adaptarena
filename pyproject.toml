@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "adaptarena"
-version = "2.0.0"
+version = "2.1.0"
 description = "AdaptArena v2: an integer-state survival environment with a reference planner, own PPO, and a locked statistical protocol."
 readme = "README.md"
 license = { text = "Apache-2.0" }
